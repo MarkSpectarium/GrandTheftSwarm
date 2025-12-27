@@ -141,6 +141,7 @@ import type { EraConfig, EraTransitionConfig } from "./eras";
  */
 export interface GameConfig {
   meta: GameMetaConfig;
+  gameplay: GameplayConfig;
   timing: TimingConfig;
   formatting: FormattingConfig;
   curves: CurvePreset[];
@@ -158,6 +159,20 @@ export interface GameConfig {
   eventPools: EventPoolConfig[];
   eras: EraConfig[];
   eraTransitions: EraTransitionConfig[];
+}
+
+/**
+ * Core gameplay configuration
+ */
+export interface GameplayConfig {
+  /** Resource ID harvested when clicking */
+  clickHarvestResource: string;
+
+  /** Base amount per click (before multipliers) */
+  clickBaseAmount: number;
+
+  /** Currency resource ID used in market transactions */
+  marketCurrency: string;
 }
 
 /**

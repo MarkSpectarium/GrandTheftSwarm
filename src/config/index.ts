@@ -37,6 +37,19 @@ export const gameConfig: GameConfig = {
   },
 
   // ---------------------------------------------------------------------------
+  // GAMEPLAY
+  // Core gameplay configuration - what resource is harvested, what currency is used
+  // ---------------------------------------------------------------------------
+  gameplay: {
+    /** Resource harvested when clicking */
+    clickHarvestResource: "rice",
+    /** Base amount per click (before multipliers) */
+    clickBaseAmount: 1,
+    /** Currency resource used in market transactions */
+    marketCurrency: "dong",
+  },
+
+  // ---------------------------------------------------------------------------
   // BALANCE
   // ---------------------------------------------------------------------------
   timing: timingConfig,
