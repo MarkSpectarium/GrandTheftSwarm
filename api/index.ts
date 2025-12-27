@@ -186,8 +186,10 @@ app.get('/api/auth/github/callback', async (req, res) => {
       },
     });
 
-    const emails = await emailResponse.json() as GitHubEmail[];
-    const primaryEmail = emails.find((e) => e.primary)?.email || null;
+    const emails = await emailResponse.json();
+    const primaryEmail = Array.isArray(emails)
+      ? emails.find((e: GitHubEmail) => e.primary)?.email || null
+      : githubUser.email || null;
 
     const userId = String(githubUser.id);
     const existingUser = await db.query.users.findFirst({
