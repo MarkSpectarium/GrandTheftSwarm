@@ -196,23 +196,46 @@ export class UIRenderer {
     if (!list) return;
 
     const resources = this.resourceSystem.getUnlockedResources();
-    let html = "";
 
-    for (const resource of resources) {
-      const amount = this.resourceSystem.getAmount(resource.id);
-      const rate = this.resourceSystem.getProductionRate(resource.id);
+    // Check if we need to rebuild (new resources unlocked)
+    const existingItems = list.querySelectorAll(".resource-item");
+    const needsRebuild = existingItems.length !== resources.length;
 
-      html += `
-        <div class="resource-item" data-resource="${resource.id}">
-          <span class="resource-icon">${getResourceIcon(resource.id)}</span>
-          <span class="resource-name">${resource.name}</span>
-          <span class="resource-amount">${formatNumber(amount)}</span>
-          ${rate.perSecond > 0 ? `<span class="resource-rate">${formatRate(rate.perSecond)}</span>` : ""}
-        </div>
-      `;
+    if (needsRebuild) {
+      // Full rebuild only when resource count changes
+      let html = "";
+
+      for (const resource of resources) {
+        const amount = this.resourceSystem.getAmount(resource.id);
+        const rate = this.resourceSystem.getProductionRate(resource.id);
+
+        html += `
+          <div class="resource-item" data-resource="${resource.id}">
+            <span class="resource-icon">${getResourceIcon(resource.id)}</span>
+            <span class="resource-name">${resource.name}</span>
+            <span class="resource-amount">${formatNumber(amount)}</span>
+            <span class="resource-rate">${rate.perSecond > 0 ? formatRate(rate.perSecond) : ""}</span>
+          </div>
+        `;
+      }
+
+      list.innerHTML = html;
+    } else {
+      // Targeted update - only update values
+      for (const resource of resources) {
+        const item = list.querySelector(`[data-resource="${resource.id}"]`);
+        if (!item) continue;
+
+        const amount = this.resourceSystem.getAmount(resource.id);
+        const rate = this.resourceSystem.getProductionRate(resource.id);
+
+        const amountSpan = item.querySelector(".resource-amount");
+        if (amountSpan) amountSpan.textContent = formatNumber(amount);
+
+        const rateSpan = item.querySelector(".resource-rate");
+        if (rateSpan) rateSpan.textContent = rate.perSecond > 0 ? formatRate(rate.perSecond) : "";
+      }
     }
-
-    list.innerHTML = html;
   }
 
   private renderBuildings(): void {
@@ -222,42 +245,75 @@ export class UIRenderer {
     if (!list) return;
 
     const buildings = this.buildingSystem.getAvailableBuildings();
-    let html = "";
+    const unlockedBuildings = buildings.filter((b) => b.unlocked);
 
-    for (const building of buildings) {
-      if (!building.unlocked) continue;
+    // Check if we need to rebuild the DOM (new buildings unlocked)
+    const existingItems = list.querySelectorAll(".building-item");
+    const needsRebuild = existingItems.length !== unlockedBuildings.length;
 
-      const costText = building.currentCost
-        .map((c) => `${formatNumber(c.amount)} ${this.getResourceName(c.resourceId)}`)
-        .join(", ");
+    if (needsRebuild) {
+      // Full rebuild only when building count changes
+      let html = "";
 
-      const productionText = Object.entries(building.productionPerSecond)
-        .map(([id, rate]) => `${formatRate(rate)} ${this.getResourceName(id)}`)
-        .join(", ");
+      for (const building of unlockedBuildings) {
+        const costText = building.currentCost
+          .map((c) => `${formatNumber(c.amount)} ${this.getResourceName(c.resourceId)}`)
+          .join(", ");
 
-      html += `
-        <div class="building-item ${building.canAfford ? "" : "cannot-afford"}" data-building="${building.config.id}">
-          <div class="building-header">
-            <span class="building-icon">${getBuildingIcon(building.config.id)}</span>
-            <span class="building-name">${building.config.name}</span>
-            <span class="building-owned">x${building.owned}</span>
+        const productionText = Object.entries(building.productionPerSecond)
+          .map(([id, rate]) => `${formatRate(rate)} ${this.getResourceName(id)}`)
+          .join(", ");
+
+        html += `
+          <div class="building-item ${building.canAfford ? "" : "cannot-afford"}" data-building="${building.config.id}">
+            <div class="building-header">
+              <span class="building-icon">${getBuildingIcon(building.config.id)}</span>
+              <span class="building-name">${building.config.name}</span>
+              <span class="building-owned">x${building.owned}</span>
+            </div>
+            <div class="building-info">
+              <span class="building-production">${productionText || "Passive production"}</span>
+            </div>
+            <div class="building-cost">Cost: ${costText}</div>
+            <button
+              class="building-buy-btn"
+              ${building.canAfford ? "" : "disabled"}
+              data-building-buy="${building.config.id}"
+            >
+              Buy
+            </button>
           </div>
-          <div class="building-info">
-            <span class="building-production">${productionText || "Passive production"}</span>
-          </div>
-          <div class="building-cost">Cost: ${costText}</div>
-          <button
-            class="building-buy-btn"
-            ${building.canAfford ? "" : "disabled"}
-            data-building-buy="${building.config.id}"
-          >
-            Buy
-          </button>
-        </div>
-      `;
+        `;
+      }
+
+      list.innerHTML = html || '<p class="no-buildings">No buildings available yet</p>';
+    } else {
+      // Targeted update - only update text content and attributes
+      for (const building of unlockedBuildings) {
+        const item = list.querySelector(`[data-building="${building.config.id}"]`);
+        if (!item) continue;
+
+        // Update owned count
+        const ownedSpan = item.querySelector(".building-owned");
+        if (ownedSpan) ownedSpan.textContent = `x${building.owned}`;
+
+        // Update cost
+        const costDiv = item.querySelector(".building-cost");
+        if (costDiv) {
+          const costText = building.currentCost
+            .map((c) => `${formatNumber(c.amount)} ${this.getResourceName(c.resourceId)}`)
+            .join(", ");
+          costDiv.textContent = `Cost: ${costText}`;
+        }
+
+        // Update affordability
+        const button = item.querySelector(".building-buy-btn") as HTMLButtonElement | null;
+        if (button) {
+          button.disabled = !building.canAfford;
+        }
+        item.classList.toggle("cannot-afford", !building.canAfford);
+      }
     }
-
-    list.innerHTML = html || '<p class="no-buildings">No buildings available yet</p>';
   }
 
   private renderStats(): void {

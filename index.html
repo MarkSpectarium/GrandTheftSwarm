@@ -74,61 +74,8 @@
     <!-- Game mounts here -->
     <div id="game-root"></div>
 
-    <!-- Load the bundled game (when built) -->
-    <script type="module">
-        // Remove loading screen when game initializes
-        function hideLoading() {
-            const loading = document.getElementById('loading');
-            if (loading) {
-                loading.style.opacity = '0';
-                loading.style.transition = 'opacity 0.3s ease';
-                setTimeout(() => loading.remove(), 300);
-            }
-        }
-
-        // For development: Load the game directly
-        // For production: This would be a bundled file
-        async function loadGame() {
-            try {
-                // Try to load from bundled output first
-                const module = await import('./dist/main.js').catch(() => null);
-                if (module) {
-                    hideLoading();
-                    return;
-                }
-
-                // Fallback: Show instructions for development
-                const loading = document.getElementById('loading');
-
-                if (loading) {
-                    loading.innerHTML = `
-                        <h1 class="loading-title">🌾 Grand Theft Swarm 🌾</h1>
-                        <div style="max-width: 600px; padding: 20px; text-align: center;">
-                            <h2 style="color: #8B4513; margin-bottom: 16px;">Development Mode</h2>
-                            <p style="margin-bottom: 16px;">The game source code is ready! To run:</p>
-                            <ol style="text-align: left; margin: 0 auto; max-width: 400px;">
-                                <li style="margin-bottom: 8px;"><code>npm install</code> - Install dependencies</li>
-                                <li style="margin-bottom: 8px;"><code>npm run dev</code> - Start dev server</li>
-                                <li style="margin-bottom: 8px;"><code>npm run build</code> - Build for production</li>
-                            </ol>
-                            <p style="margin-top: 16px; font-size: 0.875rem; color: #666;">
-                                Or use a bundler like Vite, esbuild, or webpack to compile TypeScript.
-                            </p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Failed to load game:', error);
-            }
-        }
-
-        // Start loading when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadGame);
-        } else {
-            loadGame();
-        }
-    </script>
+    <!-- Load the game from source (Vite handles TypeScript) -->
+    <script type="module" src="/src/main.ts"></script>
 
     <!-- Inline fallback for browsers without module support -->
     <noscript>
