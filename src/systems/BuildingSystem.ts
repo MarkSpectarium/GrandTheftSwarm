@@ -5,7 +5,7 @@
  * and periodic resource generation.
  */
 
-import { EventBus } from "../core/EventBus";
+import { EventBus, SubscriptionManager } from "../core/EventBus";
 import { StateManager } from "../state/StateManager";
 import { ResourceSystem } from "./ResourceSystem";
 import { MultiplierSystem } from "../core/MultiplierSystem";
@@ -36,6 +36,9 @@ export class BuildingSystem {
   // Track accumulated production for sub-second ticks
   private productionAccumulators: Map<string, Map<string, number>> = new Map();
 
+  // Cleanup tracking
+  private subscriptions = new SubscriptionManager();
+
   constructor(
     config: GameConfig,
     stateManager: StateManager,
@@ -50,6 +53,14 @@ export class BuildingSystem {
 
     this.initializeAccumulators();
     this.setupEventListeners();
+  }
+
+  /**
+   * Clean up all resources
+   */
+  dispose(): void {
+    this.subscriptions.dispose();
+    this.productionAccumulators.clear();
   }
 
   /**
@@ -410,18 +421,18 @@ export class BuildingSystem {
   }
 
   private setupEventListeners(): void {
-    // Recalculate production when multipliers change
-    EventBus.on("multiplier:changed", () => {
+    // Recalculate production when multipliers change (tracked for cleanup)
+    this.subscriptions.subscribe("multiplier:changed", () => {
       this.recalculateAllProduction();
     });
 
-    // Check unlocks when resources change
-    EventBus.on("resource:changed", () => {
+    // Check unlocks when resources change (tracked for cleanup)
+    this.subscriptions.subscribe("resource:changed", () => {
       this.checkUnlocks();
     });
 
-    // Check unlocks when buildings are purchased
-    EventBus.on("building:purchased", () => {
+    // Check unlocks when buildings are purchased (tracked for cleanup)
+    this.subscriptions.subscribe("building:purchased", () => {
       this.checkUnlocks();
     });
   }

@@ -353,3 +353,15 @@ export { formattingConfig } from "./balance/formatting.config";
 export { default as prestigeConfig } from "./balance/prestige.config";
 export { default as resourcesConfig } from "./content/resources.config";
 export { default as buildingsConfig } from "./content/buildings.config";
+
+// Export dev mode presets for accelerated testing
+export {
+  devModePresets,
+  devModeDisabled,
+  devModeFast,
+  devModeTurbo,
+  devModeHyper,
+  devModeWithResources,
+  devModeEra2Test,
+  devModeDebug,
+} from "./balance/devmode.config";

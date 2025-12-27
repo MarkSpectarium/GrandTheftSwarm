@@ -6,7 +6,12 @@
  */
 
 import { EventBus } from "./EventBus";
-import type { TimingConfig } from "../config/types";
+import type { TimingConfig, DevModeConfig } from "../config/types";
+
+export interface GameLoopOptions {
+  timing: TimingConfig;
+  devMode?: DevModeConfig;
+}
 
 export interface GameLoopState {
   isRunning: boolean;
@@ -19,12 +24,21 @@ export interface GameLoopState {
 
 export class GameLoop {
   private config: TimingConfig;
+  private devMode: DevModeConfig | undefined;
   private state: GameLoopState;
   private animationFrameId: number | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
+  private visibilityHandler: (() => void) | null = null;
 
-  constructor(config: TimingConfig) {
+  /**
+   * Time multiplier for accelerated testing
+   * 1 = normal speed, 10 = 10x speed, etc.
+   */
+  private timeMultiplier: number = 1;
+
+  constructor(config: TimingConfig, devMode?: DevModeConfig) {
     this.config = config;
+    this.devMode = devMode;
     this.state = {
       isRunning: false,
       isPaused: false,
@@ -34,7 +48,36 @@ export class GameLoop {
       tickCount: 0,
     };
 
+    // Apply dev mode time multiplier
+    if (devMode?.enabled && devMode.timeMultiplier) {
+      this.timeMultiplier = devMode.timeMultiplier;
+      console.log(`GameLoop: Dev mode enabled with ${this.timeMultiplier}x time multiplier`);
+    }
+
     this.setupVisibilityListener();
+  }
+
+  /**
+   * Get current time multiplier
+   */
+  getTimeMultiplier(): number {
+    return this.timeMultiplier;
+  }
+
+  /**
+   * Set time multiplier at runtime (for testing)
+   */
+  setTimeMultiplier(multiplier: number): void {
+    this.timeMultiplier = Math.max(1, multiplier);
+    console.log(`GameLoop: Time multiplier set to ${this.timeMultiplier}x`);
+  }
+
+  /**
+   * Clean up all resources
+   */
+  dispose(): void {
+    this.stop();
+    this.removeVisibilityListener();
   }
 
   /**
@@ -121,10 +164,18 @@ export class GameLoop {
 
     try {
       const now = performance.now();
-      const deltaMs = now - this.state.lastTickTime;
+      const realDeltaMs = now - this.state.lastTickTime;
       this.state.lastTickTime = now;
 
-      this.processTick(deltaMs);
+      // Apply time multiplier for accelerated testing
+      const effectiveDeltaMs = realDeltaMs * this.timeMultiplier;
+
+      // Log ticks in debug mode
+      if (this.devMode?.logTicks) {
+        console.log(`GameLoop: tick ${this.state.tickCount} - real: ${realDeltaMs.toFixed(1)}ms, effective: ${effectiveDeltaMs.toFixed(1)}ms`);
+      }
+
+      this.processTick(effectiveDeltaMs);
     } catch (error) {
       // Log but don't crash - let the next tick try again
       console.error("GameLoop: Error during tick:", error);
@@ -168,7 +219,7 @@ export class GameLoop {
 
   private setupVisibilityListener(): void {
     if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", () => {
+      this.visibilityHandler = () => {
         const wasVisible = this.state.isVisible;
         this.state.isVisible = document.visibilityState === "visible";
 
@@ -180,7 +231,15 @@ export class GameLoop {
           // Reschedule with appropriate tick rate
           this.scheduleNextTick();
         }
-      });
+      };
+      document.addEventListener("visibilitychange", this.visibilityHandler);
+    }
+  }
+
+  private removeVisibilityListener(): void {
+    if (typeof document !== "undefined" && this.visibilityHandler) {
+      document.removeEventListener("visibilitychange", this.visibilityHandler);
+      this.visibilityHandler = null;
     }
   }
 }

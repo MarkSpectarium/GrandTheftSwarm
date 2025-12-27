@@ -5,12 +5,15 @@
  * Uses a simple virtual DOM-like diffing approach.
  */
 
-import { EventBus } from "../core/EventBus";
+import { EventBus, SubscriptionManager } from "../core/EventBus";
 import { StateManager } from "../state/StateManager";
 import { ResourceSystem } from "../systems/ResourceSystem";
 import { BuildingSystem } from "../systems/BuildingSystem";
 import { formatNumber, formatRate } from "../utils/NumberFormatter";
 import type { GameConfig, EraTheme } from "../config/types";
+
+/** Callback for building purchase */
+export type BuildingPurchaseHandler = (buildingId: string, count: number) => boolean;
 
 export interface UIElements {
   root: HTMLElement;
@@ -30,6 +33,11 @@ export class UIRenderer {
   private lastRenderTime: number = 0;
   private renderThrottleMs: number = 50;
 
+  // Cleanup tracking
+  private subscriptions = new SubscriptionManager();
+  private renderIntervalId: ReturnType<typeof setInterval> | null = null;
+  private buildingPurchaseHandler: BuildingPurchaseHandler | null = null;
+
   constructor(
     config: GameConfig,
     stateManager: StateManager,
@@ -40,6 +48,26 @@ export class UIRenderer {
     this.stateManager = stateManager;
     this.resourceSystem = resourceSystem;
     this.buildingSystem = buildingSystem;
+  }
+
+  /**
+   * Set handler for building purchases (used by event delegation)
+   */
+  setBuildingPurchaseHandler(handler: BuildingPurchaseHandler): void {
+    this.buildingPurchaseHandler = handler;
+  }
+
+  /**
+   * Clean up all resources
+   */
+  dispose(): void {
+    this.subscriptions.dispose();
+    if (this.renderIntervalId !== null) {
+      clearInterval(this.renderIntervalId);
+      this.renderIntervalId = null;
+    }
+    this.buildingPurchaseHandler = null;
+    this.elements = null;
   }
 
   /**
@@ -220,7 +248,7 @@ export class UIRenderer {
           <button
             class="building-buy-btn"
             ${building.canAfford ? "" : "disabled"}
-            onclick="window.gameInstance?.purchaseBuilding('${building.config.id}')"
+            data-building-buy="${building.config.id}"
           >
             Buy
           </button>
@@ -340,16 +368,36 @@ export class UIRenderer {
   }
 
   private setupEventListeners(): void {
-    // Re-render on relevant events
-    EventBus.on("resource:changed", () => this.render());
-    EventBus.on("building:purchased", () => this.render());
-    EventBus.on("building:unlocked", () => this.render());
-    EventBus.on("era:transition:complete", ({ eraId }) => {
+    // Re-render on relevant events (tracked for cleanup)
+    this.subscriptions.subscribe("resource:changed", () => this.render());
+    this.subscriptions.subscribe("building:purchased", () => this.render());
+    this.subscriptions.subscribe("building:unlocked", () => this.render());
+    this.subscriptions.subscribe("era:transition:complete", ({ eraId }) => {
       this.applyEraTheme(eraId);
       this.render();
     });
 
-    // Periodic render for rates
-    setInterval(() => this.render(), 1000);
+    // Periodic render for rates (tracked for cleanup)
+    this.renderIntervalId = setInterval(() => this.render(), 1000);
+
+    // Event delegation for building purchases (fixes XSS vulnerability)
+    if (this.elements) {
+      this.elements.buildingPanel.addEventListener("click", this.handleBuildingPanelClick);
+    }
   }
+
+  /**
+   * Handle clicks on building panel using event delegation
+   */
+  private handleBuildingPanelClick = (event: Event): void => {
+    const target = event.target as HTMLElement;
+    const buyButton = target.closest("[data-building-buy]") as HTMLElement | null;
+
+    if (buyButton && this.buildingPurchaseHandler) {
+      const buildingId = buyButton.getAttribute("data-building-buy");
+      if (buildingId) {
+        this.buildingPurchaseHandler(buildingId, 1);
+      }
+    }
+  };
 }
