@@ -566,7 +566,20 @@ The following sections require dedicated deep-dives. Each is scoped for a focuse
 - Accessibility requirements
 
 ### 6.5 Game Balance Framework
-**File**: `docs/design/BALANCE_FRAMEWORK.md`
+**File**: `docs/design/BALANCE_MECHANICS.md` (Requirements) + `src/config/` (Implementation)
+
+> **STATUS**: ✅ Architecture Complete - See below for details
+
+The balance system is implemented as a **configuration-driven architecture**:
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| Mechanics Requirements | `docs/design/BALANCE_MECHANICS.md` | Curve types, multiplier systems, formulas |
+| Type Definitions | `src/config/types/` | TypeScript interfaces for all configs |
+| Balance Tuning | `src/config/balance/` | Curves, timing, formatting, prestige values |
+| Content Data | `src/config/content/` | Resources, buildings, upgrades, events |
+
+**Key Principle**: All balance tuning happens in config files. No code changes needed to adjust:
 - Exponential scaling curves
 - Idle vs active reward ratios
 - Prestige breakpoints
