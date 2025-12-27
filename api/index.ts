@@ -145,6 +145,10 @@ app.get('/api/auth/github/callback', async (req, res) => {
   }
 
   try {
+    console.log('OAuth callback - exchanging code for token...');
+    console.log('Using client_id:', GITHUB_CLIENT_ID ? 'set' : 'NOT SET');
+    console.log('Using client_secret:', GITHUB_CLIENT_SECRET ? 'set' : 'NOT SET');
+
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -159,10 +163,11 @@ app.get('/api/auth/github/callback', async (req, res) => {
     });
 
     const tokenData = await tokenResponse.json() as GitHubTokenResponse;
+    console.log('Token response:', JSON.stringify(tokenData));
 
     if (tokenData.error || !tokenData.access_token) {
-      console.error('GitHub OAuth error:', tokenData);
-      return res.redirect(`${CLIENT_URL}?error=oauth_failed`);
+      console.error('GitHub OAuth token error:', tokenData);
+      return res.redirect(`${CLIENT_URL}?error=oauth_failed&reason=token_exchange`);
     }
 
     const userResponse = await fetch('https://api.github.com/user', {
@@ -212,8 +217,9 @@ app.get('/api/auth/github/callback', async (req, res) => {
 
     res.redirect(`${CLIENT_URL}?token=${token}`);
   } catch (error) {
-    console.error('GitHub OAuth error:', error);
-    res.redirect(`${CLIENT_URL}?error=oauth_failed`);
+    console.error('GitHub OAuth catch error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'unknown';
+    res.redirect(`${CLIENT_URL}?error=oauth_failed&reason=exception&message=${encodeURIComponent(errorMessage)}`);
   }
 });
 
