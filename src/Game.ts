@@ -5,7 +5,7 @@
  * This is the primary entry point for the game logic.
  */
 
-import { EventBus } from "./core/EventBus";
+import { EventBus, SubscriptionManager } from "./core/EventBus";
 import { GameLoop } from "./core/GameLoop";
 import { CurveEvaluator, initializeCurveEvaluator } from "./core/CurveEvaluator";
 import { MultiplierSystem } from "./core/MultiplierSystem";
@@ -45,12 +45,15 @@ export class Game {
   private tickErrorCount: number = 0;
   private readonly maxTickErrors: number = 5;
 
+  // Cleanup tracking
+  private subscriptions = new SubscriptionManager();
+
   constructor(options: GameOptions = {}) {
     this.config = options.config ?? gameConfig;
 
     // Initialize core systems
     this.curveEvaluator = initializeCurveEvaluator(this.config.curves);
-    this.gameLoop = new GameLoop(this.config.timing);
+    this.gameLoop = new GameLoop(this.config.timing, this.config.devMode);
     this.multiplierSystem = new MultiplierSystem(this.config.multiplierStacks);
 
     // Initialize state
@@ -178,12 +181,39 @@ export class Game {
   }
 
   /**
-   * Stop and cleanup
+   * Stop the game loop (can be resumed)
    */
   stop(): void {
     this.gameLoop.stop();
     this.saveSystem.stopAutoSave();
     this.saveSystem.save();
+  }
+
+  /**
+   * Completely dispose of all game resources
+   * Call this when destroying the game instance
+   */
+  dispose(): void {
+    // Stop game loop
+    this.gameLoop.dispose();
+
+    // Dispose all systems
+    this.uiRenderer.dispose();
+    this.buildingSystem.dispose();
+    this.saveSystem.dispose();
+
+    // Dispose own subscriptions
+    this.subscriptions.dispose();
+
+    // Clear singleton reference
+    gameInstance = null;
+    if (typeof window !== "undefined") {
+      (window as unknown as Record<string, unknown>).gameInstance = undefined;
+      (window as unknown as Record<string, unknown>).GrandTheftSwarm = undefined;
+    }
+
+    this.isInitialized = false;
+    console.log("Game: Disposed");
   }
 
   /**
@@ -248,19 +278,24 @@ export class Game {
   }
 
   private setupEventHandlers(): void {
-    // Handle game tick with error boundary
-    EventBus.on("game:tick", ({ deltaMs }) => {
+    // Handle game tick with error boundary (tracked for cleanup)
+    this.subscriptions.subscribe("game:tick", ({ deltaMs }) => {
       this.safeTickProcess(deltaMs);
     });
 
-    // Handle resource changes for multiplier context
-    EventBus.on("resource:changed", () => {
+    // Handle resource changes for multiplier context (tracked for cleanup)
+    this.subscriptions.subscribe("resource:changed", () => {
       this.updateMultiplierContext();
     });
 
-    // Handle building purchase for multiplier context
-    EventBus.on("building:purchased", () => {
+    // Handle building purchase for multiplier context (tracked for cleanup)
+    this.subscriptions.subscribe("building:purchased", () => {
       this.updateMultiplierContext();
+    });
+
+    // Wire up UI building purchase handler (safe event delegation)
+    this.uiRenderer.setBuildingPurchaseHandler((buildingId, count) => {
+      return this.purchaseBuilding(buildingId, count);
     });
   }
 

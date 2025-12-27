@@ -213,3 +213,44 @@ class EventBusImpl {
 
 // Export singleton instance
 export const EventBus = new EventBusImpl();
+
+/**
+ * Helper to collect unsubscribe functions for cleanup
+ */
+export class SubscriptionManager {
+  private unsubscribers: Array<() => void> = [];
+
+  /**
+   * Track a subscription for later cleanup
+   */
+  add(unsubscribe: () => void): void {
+    this.unsubscribers.push(unsubscribe);
+  }
+
+  /**
+   * Subscribe to an event and track for cleanup
+   */
+  subscribe<T extends GameEventType>(
+    type: T,
+    callback: (payload: GameEventPayload[T]) => void
+  ): void {
+    this.add(EventBus.on(type, callback));
+  }
+
+  /**
+   * Unsubscribe all tracked subscriptions
+   */
+  dispose(): void {
+    for (const unsubscribe of this.unsubscribers) {
+      unsubscribe();
+    }
+    this.unsubscribers = [];
+  }
+
+  /**
+   * Get count of active subscriptions
+   */
+  get count(): number {
+    return this.unsubscribers.length;
+  }
+}

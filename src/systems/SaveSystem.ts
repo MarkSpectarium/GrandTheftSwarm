@@ -5,7 +5,7 @@
  * with version migration and data validation.
  */
 
-import { EventBus } from "../core/EventBus";
+import { EventBus, SubscriptionManager } from "../core/EventBus";
 import { StateManager } from "../state/StateManager";
 import type { TimingConfig } from "../config/types";
 
@@ -28,6 +28,11 @@ export class SaveSystem {
   private autoSaveInterval: ReturnType<typeof setInterval> | null = null;
   private isDirty: boolean = false;
 
+  // Cleanup tracking
+  private subscriptions = new SubscriptionManager();
+  private beforeUnloadHandler: (() => void) | null = null;
+  private visibilityHandler: (() => void) | null = null;
+
   constructor(
     stateManager: StateManager,
     config: Partial<SaveSystemConfig> = {}
@@ -41,6 +46,15 @@ export class SaveSystem {
     };
 
     this.setupEventListeners();
+  }
+
+  /**
+   * Clean up all resources
+   */
+  dispose(): void {
+    this.stopAutoSave();
+    this.subscriptions.dispose();
+    this.removeWindowListeners();
   }
 
   /**
@@ -281,26 +295,41 @@ export class SaveSystem {
   }
 
   private setupEventListeners(): void {
-    // Mark dirty on any state change
-    EventBus.on("resource:changed", () => this.markDirty());
-    EventBus.on("building:purchased", () => this.markDirty());
-    EventBus.on("upgrade:purchased", () => this.markDirty());
-    EventBus.on("era:transition:complete", () => this.markDirty());
+    // Mark dirty on any state change (tracked for cleanup)
+    this.subscriptions.subscribe("resource:changed", () => this.markDirty());
+    this.subscriptions.subscribe("building:purchased", () => this.markDirty());
+    this.subscriptions.subscribe("upgrade:purchased", () => this.markDirty());
+    this.subscriptions.subscribe("era:transition:complete", () => this.markDirty());
 
-    // Save before page unload
+    // Save before page unload (tracked for cleanup)
     if (typeof window !== "undefined") {
-      window.addEventListener("beforeunload", () => {
+      this.beforeUnloadHandler = () => {
         if (this.isDirty) {
           this.save();
         }
-      });
+      };
+      window.addEventListener("beforeunload", this.beforeUnloadHandler);
 
-      // Save when tab is hidden
-      document.addEventListener("visibilitychange", () => {
+      // Save when tab is hidden (tracked for cleanup)
+      this.visibilityHandler = () => {
         if (document.hidden && this.isDirty) {
           this.save();
         }
-      });
+      };
+      document.addEventListener("visibilitychange", this.visibilityHandler);
+    }
+  }
+
+  private removeWindowListeners(): void {
+    if (typeof window !== "undefined") {
+      if (this.beforeUnloadHandler) {
+        window.removeEventListener("beforeunload", this.beforeUnloadHandler);
+        this.beforeUnloadHandler = null;
+      }
+      if (this.visibilityHandler) {
+        document.removeEventListener("visibilitychange", this.visibilityHandler);
+        this.visibilityHandler = null;
+      }
     }
   }
 }

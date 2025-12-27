@@ -6,6 +6,7 @@
  */
 
 import { EventBus } from "./EventBus";
+import { ConditionEvaluator, type ConditionContext } from "./ConditionEvaluator";
 import type {
   MultiplierStackConfig,
   MultiplierSourceConfig,
@@ -32,22 +33,15 @@ export interface MultiplierStack {
   isDirty: boolean;
 }
 
-export interface ConditionContext {
-  resources: Record<string, number>;
-  buildings: Record<string, number>;
-  upgrades: Set<string>;
-  era: number;
-  prestigeLevel: number;
-  activeEvents: Set<string>;
-  currentHour: number;
-}
+// Re-export ConditionContext for backwards compatibility
+export type { ConditionContext };
 
 export class MultiplierSystem {
   private stacks: Map<string, MultiplierStack> = new Map();
-  private conditionContext: ConditionContext;
+  private conditionEvaluator: ConditionEvaluator;
 
   constructor(stackConfigs: MultiplierStackConfig[]) {
-    this.conditionContext = this.createEmptyContext();
+    this.conditionEvaluator = new ConditionEvaluator();
     this.initializeStacks(stackConfigs);
   }
 
@@ -147,7 +141,7 @@ export class MultiplierSystem {
     const stack = this.stacks.get(stackId);
     if (!stack) return [];
 
-    return stack.sources.filter((s) => this.isConditionMet(s.condition));
+    return stack.sources.filter((s) => this.conditionEvaluator.evaluate(s.condition));
   }
 
   /**
@@ -160,7 +154,7 @@ export class MultiplierSystem {
     }
 
     const activeSources = stack.sources
-      .filter((s) => this.isConditionMet(s.condition))
+      .filter((s) => this.conditionEvaluator.evaluate(s.condition))
       .map((s) => ({ name: s.sourceName, value: s.value }));
 
     return {
@@ -173,7 +167,7 @@ export class MultiplierSystem {
    * Update the condition context (called when game state changes)
    */
   updateConditionContext(context: Partial<ConditionContext>): void {
-    this.conditionContext = { ...this.conditionContext, ...context };
+    this.conditionEvaluator.updateContext(context);
 
     // Mark all stacks with conditional sources as dirty
     for (const stack of this.stacks.values()) {
@@ -229,7 +223,7 @@ export class MultiplierSystem {
       if (s.temporary && s.expiresAt && s.expiresAt <= Date.now()) {
         return false;
       }
-      return this.isConditionMet(s.condition);
+      return this.conditionEvaluator.evaluate(s.condition);
     });
 
     let value = this.calculateStackValue(config.stackType, config.baseValue, activeSources);
@@ -279,73 +273,5 @@ export class MultiplierSystem {
       default:
         return baseValue;
     }
-  }
-
-  private isConditionMet(condition?: MultiplierCondition): boolean {
-    if (!condition) return true;
-
-    const ctx = this.conditionContext;
-
-    switch (condition.type) {
-      case "resource_gte":
-        return (ctx.resources[condition.params.resource!] ?? 0) >= (condition.params.value ?? 0);
-
-      case "resource_lte":
-        return (ctx.resources[condition.params.resource!] ?? 0) <= (condition.params.value ?? 0);
-
-      case "building_owned":
-        return (ctx.buildings[condition.params.building!] ?? 0) >= (condition.params.count ?? 1);
-
-      case "upgrade_purchased":
-        return ctx.upgrades.has(condition.params.upgrade!);
-
-      case "era_gte":
-        return ctx.era >= (condition.params.era ?? 1);
-
-      case "era_eq":
-        return ctx.era === (condition.params.era ?? 1);
-
-      case "time_of_day": {
-        const start = condition.params.startHour ?? 0;
-        const end = condition.params.endHour ?? 24;
-        const hour = ctx.currentHour;
-        if (start <= end) {
-          return hour >= start && hour < end;
-        } else {
-          // Handles overnight ranges (e.g., 22-6)
-          return hour >= start || hour < end;
-        }
-      }
-
-      case "event_active":
-        return ctx.activeEvents.has(condition.params.event!);
-
-      case "prestige_level":
-        return ctx.prestigeLevel >= (condition.params.value ?? 0);
-
-      case "and":
-        return (condition.params.conditions ?? []).every((c) => this.isConditionMet(c));
-
-      case "or":
-        return (condition.params.conditions ?? []).some((c) => this.isConditionMet(c));
-
-      case "not":
-        return !this.isConditionMet(condition.params.condition);
-
-      default:
-        return true;
-    }
-  }
-
-  private createEmptyContext(): ConditionContext {
-    return {
-      resources: {},
-      buildings: {},
-      upgrades: new Set(),
-      era: 1,
-      prestigeLevel: 0,
-      activeEvents: new Set(),
-      currentHour: new Date().getHours(),
-    };
   }
 }

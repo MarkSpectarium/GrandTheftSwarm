@@ -159,6 +159,12 @@ export interface GameConfig {
   eventPools: EventPoolConfig[];
   eras: EraConfig[];
   eraTransitions: EraTransitionConfig[];
+
+  /**
+   * Development/test mode configuration (optional)
+   * When enabled, allows accelerated testing of long-term systems
+   */
+  devMode?: DevModeConfig;
 }
 
 /**
@@ -202,6 +208,47 @@ export interface TimingConfig {
 
   /** Auto-save interval (ms) */
   autoSaveIntervalMs: number;
+}
+
+/**
+ * Development/test mode configuration
+ * Used for accelerated testing of long-term game systems
+ */
+export interface DevModeConfig {
+  /** Enable dev mode features */
+  enabled: boolean;
+
+  /**
+   * Global time multiplier for accelerated testing.
+   * 1 = normal speed, 10 = 10x speed, 100 = 100x speed
+   * Applies to all game ticks, production, and time-based mechanics.
+   */
+  timeMultiplier: number;
+
+  /**
+   * Start with resources for testing (bypasses early game)
+   */
+  startingResources?: Record<string, number>;
+
+  /**
+   * Start with buildings for testing
+   */
+  startingBuildings?: Record<string, number>;
+
+  /**
+   * Unlock all buildings regardless of requirements
+   */
+  unlockAllBuildings?: boolean;
+
+  /**
+   * Disable auto-save (useful for repeated test runs)
+   */
+  disableAutoSave?: boolean;
+
+  /**
+   * Log tick timing information
+   */
+  logTicks?: boolean;
 }
 
 /**
