@@ -1,18 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm build",
+  "buildCommand": "pnpm build:client",
   "installCommand": "pnpm install",
-  "framework": null,
   "outputDirectory": "packages/client/dist",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "source": "/api/:path*",
+      "destination": "/api"
     }
   ],
   "functions": {
-    "packages/api/src/**/*.ts": {
-      "runtime": "@vercel/node@3"
+    "api/index.ts": {
+      "memory": 256,
+      "maxDuration": 10
     }
   }
 }
