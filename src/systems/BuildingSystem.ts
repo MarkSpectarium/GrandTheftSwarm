@@ -10,7 +10,9 @@ import { StateManager } from "../state/StateManager";
 import { ResourceSystem } from "./ResourceSystem";
 import { MultiplierSystem } from "../core/MultiplierSystem";
 import { CurveEvaluator, getCurveEvaluator } from "../core/CurveEvaluator";
-import type { GameConfig, BuildingConfig, ResourceAmount } from "../config/types";
+import { UnlockEvaluator, type UnlockRequirement } from "./UnlockEvaluator";
+import { ProductionAccumulator } from "./ProductionAccumulator";
+import type { GameConfig, BuildingConfig } from "../config/types";
 
 export interface BuildingCost {
   resourceId: string;
@@ -32,9 +34,8 @@ export class BuildingSystem {
   private resourceSystem: ResourceSystem;
   private multiplierSystem: MultiplierSystem;
   private curveEvaluator: CurveEvaluator;
-
-  // Track accumulated production for sub-second ticks
-  private productionAccumulators: Map<string, Map<string, number>> = new Map();
+  private unlockEvaluator: UnlockEvaluator;
+  private productionAccumulator: ProductionAccumulator;
 
   // Cleanup tracking
   private subscriptions = new SubscriptionManager();
@@ -50,8 +51,14 @@ export class BuildingSystem {
     this.resourceSystem = resourceSystem;
     this.multiplierSystem = multiplierSystem;
     this.curveEvaluator = getCurveEvaluator();
+    this.unlockEvaluator = new UnlockEvaluator(stateManager, resourceSystem);
+    this.productionAccumulator = new ProductionAccumulator(resourceSystem);
 
-    this.initializeAccumulators();
+    // Initialize accumulators for all buildings
+    for (const building of config.buildings) {
+      this.productionAccumulator.initializeBuilding(building.id);
+    }
+
     this.setupEventListeners();
   }
 
@@ -60,7 +67,7 @@ export class BuildingSystem {
    */
   dispose(): void {
     this.subscriptions.dispose();
-    this.productionAccumulators.clear();
+    this.productionAccumulator.clear();
   }
 
   /**
@@ -122,6 +129,11 @@ export class BuildingSystem {
     for (const baseCost of config.baseCost) {
       let totalCost = 0;
 
+      // Resolve base amount (could be a curve reference or direct number)
+      const baseAmount = typeof baseCost.amount === "number"
+        ? baseCost.amount
+        : this.curveEvaluator.evaluate(baseCost.amount, { owned: 0 });
+
       for (let i = 0; i < count; i++) {
         const context = { owned: owned + i };
         const multiplier = this.curveEvaluator.evaluate(config.costCurve, context);
@@ -129,7 +141,7 @@ export class BuildingSystem {
         // Apply cost reduction multiplier
         const costReduction = this.multiplierSystem.getValue("building_cost");
 
-        totalCost += baseCost.amount * multiplier * costReduction;
+        totalCost += baseAmount * multiplier * costReduction;
       }
 
       costs.push({
@@ -146,7 +158,6 @@ export class BuildingSystem {
    */
   calculateMaxAffordable(buildingId: string): number {
     let count = 0;
-    let totalCosts: Map<string, number> = new Map();
 
     while (count < 1000) {
       // Safety limit
@@ -302,12 +313,10 @@ export class BuildingSystem {
       // Check era requirement
       if (building.unlockedAtEra > currentEra) continue;
 
-      // Check additional requirements
+      // Check additional requirements using UnlockEvaluator
       if (building.unlockRequirements && building.unlockRequirements.length > 0) {
-        const allMet = building.unlockRequirements.every((req) =>
-          this.checkUnlockRequirement(req)
-        );
-        if (!allMet) continue;
+        const requirements = building.unlockRequirements as UnlockRequirement[];
+        if (!this.unlockEvaluator.evaluateAll(requirements)) continue;
       }
 
       // Unlock the building
@@ -349,74 +358,8 @@ export class BuildingSystem {
         // This would be applied for offline progress
       }
 
-      // Add to accumulator
-      this.addToAccumulator(config.id, output.resourceId, amount);
-
-      // Check if we should flush (to avoid floating point issues with small amounts)
-      const accumulated = this.getAccumulated(config.id, output.resourceId);
-      if (accumulated >= 0.01) {
-        // Flush when we have at least 0.01
-        this.flushAccumulator(config.id, output.resourceId);
-      }
-    }
-  }
-
-  private initializeAccumulators(): void {
-    for (const building of this.config.buildings) {
-      this.productionAccumulators.set(building.id, new Map());
-    }
-  }
-
-  private addToAccumulator(buildingId: string, resourceId: string, amount: number): void {
-    const buildingAccum = this.productionAccumulators.get(buildingId);
-    if (!buildingAccum) return;
-
-    const current = buildingAccum.get(resourceId) ?? 0;
-    buildingAccum.set(resourceId, current + amount);
-  }
-
-  private getAccumulated(buildingId: string, resourceId: string): number {
-    return this.productionAccumulators.get(buildingId)?.get(resourceId) ?? 0;
-  }
-
-  private flushAccumulator(buildingId: string, resourceId: string): void {
-    const buildingAccum = this.productionAccumulators.get(buildingId);
-    if (!buildingAccum) return;
-
-    const amount = buildingAccum.get(resourceId) ?? 0;
-    if (amount > 0) {
-      this.resourceSystem.addResource(resourceId, amount, `building:${buildingId}`);
-      buildingAccum.set(resourceId, 0);
-
-      EventBus.emit("building:production", {
-        buildingId,
-        outputs: { [resourceId]: amount },
-      });
-    }
-  }
-
-  private checkUnlockRequirement(req: { type: string; params: Record<string, unknown> }): boolean {
-    switch (req.type) {
-      case "resource_lifetime": {
-        const amount = this.resourceSystem.getLifetimeAmount(req.params.resource as string);
-        return amount >= (req.params.amount as number);
-      }
-      case "resource_current": {
-        const amount = this.resourceSystem.getAmount(req.params.resource as string);
-        return amount >= (req.params.amount as number);
-      }
-      case "building_owned": {
-        const owned = this.stateManager.getBuilding(req.params.building as string)?.owned ?? 0;
-        return owned >= (req.params.count as number);
-      }
-      case "upgrade_purchased": {
-        return this.stateManager.isUpgradePurchased(req.params.upgrade as string);
-      }
-      case "era_reached": {
-        return this.stateManager.getCurrentEra() >= (req.params.era as number);
-      }
-      default:
-        return false;
+      // Add to accumulator and auto-flush if threshold met
+      this.productionAccumulator.addAndFlush(config.id, output.resourceId, amount);
     }
   }
 

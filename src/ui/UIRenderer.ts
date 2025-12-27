@@ -5,12 +5,13 @@
  * Uses a simple virtual DOM-like diffing approach.
  */
 
-import { EventBus, SubscriptionManager } from "../core/EventBus";
+import { SubscriptionManager } from "../core/EventBus";
 import { StateManager } from "../state/StateManager";
 import { ResourceSystem } from "../systems/ResourceSystem";
 import { BuildingSystem } from "../systems/BuildingSystem";
 import { formatNumber, formatRate } from "../utils/NumberFormatter";
-import type { GameConfig, EraTheme } from "../config/types";
+import { getResourceIcon, getBuildingIcon } from "../config/ui/icons.config";
+import type { GameConfig } from "../config/types";
 
 /** Callback for building purchase */
 export type BuildingPurchaseHandler = (buildingId: string, count: number) => boolean;
@@ -203,7 +204,7 @@ export class UIRenderer {
 
       html += `
         <div class="resource-item" data-resource="${resource.id}">
-          <span class="resource-icon">${this.getResourceIcon(resource.id)}</span>
+          <span class="resource-icon">${getResourceIcon(resource.id)}</span>
           <span class="resource-name">${resource.name}</span>
           <span class="resource-amount">${formatNumber(amount)}</span>
           ${rate.perSecond > 0 ? `<span class="resource-rate">${formatRate(rate.perSecond)}</span>` : ""}
@@ -237,7 +238,7 @@ export class UIRenderer {
       html += `
         <div class="building-item ${building.canAfford ? "" : "cannot-afford"}" data-building="${building.config.id}">
           <div class="building-header">
-            <span class="building-icon">${this.getBuildingIcon(building.config.id)}</span>
+            <span class="building-icon">${getBuildingIcon(building.config.id)}</span>
             <span class="building-name">${building.config.name}</span>
             <span class="building-owned">x${building.owned}</span>
           </div>
@@ -336,30 +337,6 @@ export class UIRenderer {
 
     // Apply era CSS class
     root.className = `game-container ${theme.cssClass}`;
-  }
-
-  private getResourceIcon(resourceId: string): string {
-    const icons: Record<string, string> = {
-      rice: "🌾",
-      dong: "💰",
-      rice_flour: "🍚",
-      rice_noodles: "🍜",
-      ancestral_wisdom: "📜",
-      lotus_token: "🪷",
-    };
-    return icons[resourceId] || "📦";
-  }
-
-  private getBuildingIcon(buildingId: string): string {
-    const icons: Record<string, string> = {
-      paddy_field: "🟩",
-      family_worker: "👨‍🌾",
-      buffalo: "🐃",
-      rice_mill: "🏭",
-      sampan: "🚣",
-      harvest_drone: "🤖",
-    };
-    return icons[buildingId] || "🏠";
   }
 
   private getResourceName(resourceId: string): string {
