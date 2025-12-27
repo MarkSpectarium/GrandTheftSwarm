@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clicker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1 id="counter">0</h1>
+    <button id="clickButton">Click Me</button>
+
+    <script>
+        let count = 0;
+        const counterDisplay = document.getElementById('counter');
+        const button = document.getElementById('clickButton');
+
+        button.addEventListener('click', function() {
+            count++;
+            counterDisplay.textContent = count;
+        });
+    </script>
+</body>
+</html>
