@@ -18,9 +18,24 @@ declare global {
 }
 
 /**
+ * Hide the loading screen with a fade transition
+ */
+function hideLoading(): void {
+  const loading = document.getElementById("loading");
+  if (loading) {
+    loading.style.opacity = "0";
+    loading.style.transition = "opacity 0.3s ease";
+    setTimeout(() => loading.remove(), 300);
+  }
+}
+
+/**
  * Initialize the game when DOM is ready
  */
 function initializeGame(): void {
+  // Hide loading screen
+  hideLoading();
+
   // Create the game container if it doesn't exist
   let rootElement = document.getElementById("game-root");
 
