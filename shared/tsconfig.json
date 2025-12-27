@@ -8,11 +8,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true,
+    "outDir": "./dist"
   },
-  "references": [
-    { "path": "./packages/client" },
-    { "path": "./packages/api" },
-    { "path": "./shared" }
-  ]
+  "include": ["types/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

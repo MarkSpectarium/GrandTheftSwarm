@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Grand Theft Swarm - Build a rice empire in Vietnam's Mekong Delta">
+    <meta name="theme-color" content="#8B4513">
+    <title>Grand Theft Swarm: Mekong Delta Farming Empire</title>
+    <style>
+        /* Critical CSS - loaded inline for fast first paint */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: Georgia, serif;
+            background-color: #F5DEB3;
+            color: #2F1810;
+            min-height: 100vh;
+        }
+
+        #root {
+            min-height: 100vh;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 16px;
+        }
+
+        .loading-title {
+            font-size: 1.5rem;
+            color: #8B4513;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #D2691E;
+            border-top-color: #FFD700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #8B4513;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <!-- React mounts here -->
+    <div id="root">
+        <!-- Loading screen shown while JavaScript loads -->
+        <div class="loading">
+            <h1 class="loading-title">Grand Theft Swarm</h1>
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Preparing the rice paddies...</p>
+        </div>
+    </div>
+
+    <!-- Load the React app -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Fallback for browsers without module support -->
+    <noscript>
+        <div style="text-align: center; padding: 48px;">
+            <h1>Grand Theft Swarm</h1>
+            <p>This game requires JavaScript to run. Please enable JavaScript in your browser.</p>
+        </div>
+    </noscript>
+</body>
+</html>
