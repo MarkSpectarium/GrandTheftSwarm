@@ -1,33 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Clicker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Grand Theft Swarm - Build a rice empire in Vietnam's Mekong Delta">
+    <meta name="theme-color" content="#8B4513">
+    <title>Grand Theft Swarm: Mekong Delta Farming Empire</title>
     <style>
+        /* Critical CSS - loaded inline for fast first paint */
         * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
             -webkit-user-select: none;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
         }
-        #counter {
-            color: blue;
+
+        body {
+            font-family: Georgia, serif;
+            background-color: #F5DEB3;
+            color: #2F1810;
+            min-height: 100vh;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 16px;
+        }
+
+        .loading-title {
+            font-size: 1.5rem;
+            color: #8B4513;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #D2691E;
+            border-top-color: #FFD700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #8B4513;
+            font-style: italic;
+        }
+
+        /* Hide game root until loaded */
+        #game-root:empty {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1 id="counter">0</h1>
-    <button id="clickButton">Click Me</button>
+    <!-- Loading screen shown while JavaScript loads -->
+    <div id="loading" class="loading">
+        <h1 class="loading-title">🌾 Grand Theft Swarm 🌾</h1>
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Preparing the rice paddies...</p>
+    </div>
 
-    <script>
-        let count = 0;
-        const counterDisplay = document.getElementById('counter');
-        const button = document.getElementById('clickButton');
+    <!-- Game mounts here -->
+    <div id="game-root"></div>
 
-        button.addEventListener('click', function() {
-            count++;
-            counterDisplay.textContent = count;
-        });
+    <!-- Load the bundled game (when built) -->
+    <script type="module">
+        // Remove loading screen when game initializes
+        function hideLoading() {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.opacity = '0';
+                loading.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => loading.remove(), 300);
+            }
+        }
+
+        // For development: Load the game directly
+        // For production: This would be a bundled file
+        async function loadGame() {
+            try {
+                // Try to load from bundled output first
+                const module = await import('./dist/main.js').catch(() => null);
+                if (module) {
+                    hideLoading();
+                    return;
+                }
+
+                // Fallback: Show instructions for development
+                const loading = document.getElementById('loading');
+
+                if (loading) {
+                    loading.innerHTML = `
+                        <h1 class="loading-title">🌾 Grand Theft Swarm 🌾</h1>
+                        <div style="max-width: 600px; padding: 20px; text-align: center;">
+                            <h2 style="color: #8B4513; margin-bottom: 16px;">Development Mode</h2>
+                            <p style="margin-bottom: 16px;">The game source code is ready! To run:</p>
+                            <ol style="text-align: left; margin: 0 auto; max-width: 400px;">
+                                <li style="margin-bottom: 8px;"><code>npm install</code> - Install dependencies</li>
+                                <li style="margin-bottom: 8px;"><code>npm run dev</code> - Start dev server</li>
+                                <li style="margin-bottom: 8px;"><code>npm run build</code> - Build for production</li>
+                            </ol>
+                            <p style="margin-top: 16px; font-size: 0.875rem; color: #666;">
+                                Or use a bundler like Vite, esbuild, or webpack to compile TypeScript.
+                            </p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to load game:', error);
+            }
+        }
+
+        // Start loading when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadGame);
+        } else {
+            loadGame();
+        }
     </script>
+
+    <!-- Inline fallback for browsers without module support -->
+    <noscript>
+        <div style="text-align: center; padding: 48px;">
+            <h1>🌾 Grand Theft Swarm 🌾</h1>
+            <p>This game requires JavaScript to run. Please enable JavaScript in your browser.</p>
+        </div>
+    </noscript>
 </body>
 </html>

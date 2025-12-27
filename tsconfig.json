@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Path aliases */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/config": ["src/config/index.ts"],
+      "@/config/*": ["src/config/*"],
+      "@/core": ["src/core/index.ts"],
+      "@/core/*": ["src/core/*"],
+      "@/state": ["src/state/index.ts"],
+      "@/state/*": ["src/state/*"],
+      "@/systems": ["src/systems/index.ts"],
+      "@/systems/*": ["src/systems/*"],
+      "@/ui": ["src/ui/index.ts"],
+      "@/ui/*": ["src/ui/*"],
+      "@/utils": ["src/utils/index.ts"],
+      "@/utils/*": ["src/utils/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
