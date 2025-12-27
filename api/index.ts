@@ -190,6 +190,7 @@ app.get('/api/auth/github/callback', async (req, res) => {
     const primaryEmail = Array.isArray(emails)
       ? emails.find((e: GitHubEmail) => e.primary)?.email || null
       : githubUser.email || null;
+    console.log('Email fetch result:', Array.isArray(emails) ? `got ${emails.length} emails` : 'fallback to profile email', '| primaryEmail:', primaryEmail);
 
     const userId = String(githubUser.id);
     const existingUser = await db.query.users.findFirst({
