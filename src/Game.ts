@@ -41,6 +41,10 @@ export class Game {
   private isInitialized: boolean = false;
   private rootElement: HTMLElement | null = null;
 
+  // Error tracking for graceful degradation
+  private tickErrorCount: number = 0;
+  private readonly maxTickErrors: number = 5;
+
   constructor(options: GameOptions = {}) {
     this.config = options.config ?? gameConfig;
 
@@ -244,19 +248,9 @@ export class Game {
   }
 
   private setupEventHandlers(): void {
-    // Handle game tick
+    // Handle game tick with error boundary
     EventBus.on("game:tick", ({ deltaMs }) => {
-      // Update play time
-      this.stateManager.updatePlayTime(deltaMs);
-
-      // Process building production
-      this.buildingSystem.processTick(deltaMs);
-
-      // Process expired multipliers
-      this.multiplierSystem.processExpiredMultipliers(Date.now());
-
-      // Update multiplier context
-      this.updateMultiplierContext();
+      this.safeTickProcess(deltaMs);
     });
 
     // Handle resource changes for multiplier context
@@ -268,6 +262,70 @@ export class Game {
     EventBus.on("building:purchased", () => {
       this.updateMultiplierContext();
     });
+  }
+
+  /**
+   * Process a tick with error handling to prevent game loop crashes
+   */
+  private safeTickProcess(deltaMs: number): void {
+    try {
+      // Update play time
+      this.stateManager.updatePlayTime(deltaMs);
+
+      // Process building production
+      this.buildingSystem.processTick(deltaMs);
+
+      // Process expired multipliers
+      this.multiplierSystem.processExpiredMultipliers(Date.now());
+
+      // Update multiplier context
+      this.updateMultiplierContext();
+
+      // Reset error count on successful tick
+      if (this.tickErrorCount > 0) {
+        this.tickErrorCount = 0;
+      }
+    } catch (error) {
+      this.handleTickError(error);
+    }
+  }
+
+  /**
+   * Handle errors during tick processing with graceful degradation
+   */
+  private handleTickError(error: unknown): void {
+    this.tickErrorCount++;
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    console.error("Game: Error during tick processing:", error);
+    if (errorStack) {
+      console.error("Stack trace:", errorStack);
+    }
+
+    // If too many consecutive errors, pause the game to prevent further damage
+    if (this.tickErrorCount >= this.maxTickErrors) {
+      console.error(
+        `Game: ${this.maxTickErrors} consecutive tick errors detected. ` +
+        "Pausing game to prevent data corruption."
+      );
+
+      this.gameLoop.pause();
+
+      EventBus.emit("ui:notification", {
+        message: "Game paused due to repeated errors. Your progress has been saved.",
+        type: "error",
+      });
+
+      // Attempt emergency save
+      try {
+        this.saveSystem.save();
+        console.log("Game: Emergency save completed successfully");
+      } catch (saveError) {
+        console.error("Game: Emergency save failed:", saveError);
+      }
+    }
   }
 
   private updateMultiplierContext(): void {

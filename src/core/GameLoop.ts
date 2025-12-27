@@ -119,12 +119,21 @@ export class GameLoop {
   private tick = (): void => {
     if (!this.state.isRunning || this.state.isPaused) return;
 
-    const now = performance.now();
-    const deltaMs = now - this.state.lastTickTime;
-    this.state.lastTickTime = now;
+    try {
+      const now = performance.now();
+      const deltaMs = now - this.state.lastTickTime;
+      this.state.lastTickTime = now;
 
-    this.processTick(deltaMs);
-    this.scheduleNextTick();
+      this.processTick(deltaMs);
+    } catch (error) {
+      // Log but don't crash - let the next tick try again
+      console.error("GameLoop: Error during tick:", error);
+    }
+
+    // Always schedule next tick unless stopped/paused
+    if (this.state.isRunning && !this.state.isPaused) {
+      this.scheduleNextTick();
+    }
   };
 
   private scheduleNextTick(): void {

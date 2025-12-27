@@ -98,10 +98,14 @@ export class ResourceSystem {
    * Process manual click harvest
    */
   processClick(): number {
+    const { clickHarvestResource, clickBaseAmount } = this.config.gameplay;
     const clickPower = this.multiplierSystem.getValue("click_power");
-    const baseAmount = 1; // Base click gives 1 rice
 
-    const harvested = this.addResource("rice", baseAmount * clickPower, "click");
+    const harvested = this.addResource(
+      clickHarvestResource,
+      clickBaseAmount * clickPower,
+      "click"
+    );
     this.stateManager.recordClick(harvested);
 
     EventBus.emit("click:harvest", { amount: harvested, multiplier: clickPower });
@@ -169,8 +173,9 @@ export class ResourceSystem {
     // Spend the resource
     this.spendResource(resourceId, actualAmount, "market");
 
-    // Gain currency (dong)
-    this.addResource("dong", totalValue, "market", false);
+    // Gain currency
+    const { marketCurrency } = this.config.gameplay;
+    this.addResource(marketCurrency, totalValue, "market", false);
 
     return totalValue;
   }
