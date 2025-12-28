@@ -1,8 +1,8 @@
 /**
  * Vercel Serverless Function Entry Point
- * Uses pre-compiled API from packages/api/dist
+ * Uses bundled API
  */
-import app from '../packages/api/dist/packages/api/src/index.js';
+import app from './bundled.js';
 
 export default function handler(req, res) {
   return app(req, res);
