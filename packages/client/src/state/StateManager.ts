@@ -8,19 +8,21 @@
 import { EventBus } from "../core/EventBus";
 import type { GameConfig, ResourceConfig, BuildingConfig } from "../config/types";
 import {
-  GameState,
-  ResourceState,
-  BuildingState,
+  type RuntimeGameState,
+  type SerializableGameState,
+  type ResourceState,
+  type BuildingState,
   createInitialGameState,
   createResourceState,
   createBuildingState,
   createUpgradeState,
+  toSerializableState,
 } from "./GameState";
 
 export class StateManager {
-  private state: GameState;
+  private state: RuntimeGameState;
   private config: GameConfig;
-  private subscribers: Set<(state: GameState) => void> = new Set();
+  private subscribers: Set<(state: RuntimeGameState) => void> = new Set();
 
   constructor(config: GameConfig) {
     this.config = config;
@@ -30,7 +32,7 @@ export class StateManager {
   /**
    * Get current state (read-only)
    */
-  getState(): Readonly<GameState> {
+  getState(): Readonly<RuntimeGameState> {
     return this.state;
   }
 
@@ -58,7 +60,7 @@ export class StateManager {
   /**
    * Subscribe to state changes
    */
-  subscribe(callback: (state: GameState) => void): () => void {
+  subscribe(callback: (state: RuntimeGameState) => void): () => void {
     this.subscribers.add(callback);
     return () => this.subscribers.delete(callback);
   }
@@ -265,11 +267,9 @@ export class StateManager {
   /**
    * Get serializable state for saving
    */
-  getSerializableState(): object {
+  getSerializableState(): SerializableGameState {
     return {
-      ...this.state,
-      unlockedFeatures: Array.from(this.state.unlockedFeatures),
-      achievements: Array.from(this.state.achievements),
+      ...toSerializableState(this.state),
       lastPlayedAt: Date.now(),
     };
   }
@@ -312,7 +312,7 @@ export class StateManager {
     return Date.now() - this.state.lastPlayedAt;
   }
 
-  private initializeState(): GameState {
+  private initializeState(): RuntimeGameState {
     const state = createInitialGameState();
 
     // Initialize resources from config

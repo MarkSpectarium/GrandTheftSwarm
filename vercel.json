@@ -12,7 +12,8 @@
   "functions": {
     "api/index.ts": {
       "memory": 256,
-      "maxDuration": 10
+      "maxDuration": 10,
+      "includeFiles": "packages/api/src/**/*"
     }
   }
 }

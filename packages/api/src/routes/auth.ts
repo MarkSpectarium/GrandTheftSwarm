@@ -8,6 +8,7 @@ export const authRouter: Router = Router();
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+const API_URL = process.env.API_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3001');
 
 interface GitHubTokenResponse {
   access_token?: string;
@@ -31,7 +32,7 @@ interface GitHubEmail {
 authRouter.get('/github', (_req: Request, res: Response) => {
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
-    redirect_uri: `${process.env.API_URL || 'http://localhost:3001'}/api/auth/github/callback`,
+    redirect_uri: `${API_URL}/api/auth/github/callback`,
     scope: 'read:user user:email',
   });
 
@@ -47,6 +48,10 @@ authRouter.get('/github/callback', async (req: Request, res: Response) => {
   }
 
   try {
+    console.log('OAuth callback - exchanging code for token...');
+    console.log('Using client_id:', GITHUB_CLIENT_ID ? 'set' : 'NOT SET');
+    console.log('Using client_secret:', GITHUB_CLIENT_SECRET ? 'set' : 'NOT SET');
+
     // Exchange code for access token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -62,10 +67,11 @@ authRouter.get('/github/callback', async (req: Request, res: Response) => {
     });
 
     const tokenData = await tokenResponse.json() as GitHubTokenResponse;
+    console.log('Token response:', JSON.stringify(tokenData));
 
     if (tokenData.error || !tokenData.access_token) {
-      console.error('GitHub OAuth error:', tokenData);
-      return res.redirect(`${CLIENT_URL}?error=oauth_failed`);
+      console.error('GitHub OAuth token error:', tokenData);
+      return res.redirect(`${CLIENT_URL}?error=oauth_failed&reason=token_exchange`);
     }
 
     // Get user info from GitHub
@@ -86,8 +92,11 @@ authRouter.get('/github/callback', async (req: Request, res: Response) => {
       },
     });
 
-    const emails = await emailResponse.json() as GitHubEmail[];
-    const primaryEmail = emails.find((e) => e.primary)?.email || null;
+    const emails = await emailResponse.json();
+    const primaryEmail = Array.isArray(emails)
+      ? emails.find((e: GitHubEmail) => e.primary)?.email || null
+      : githubUser.email || null;
+    console.log('Email fetch result:', Array.isArray(emails) ? `got ${emails.length} emails` : 'fallback to profile email', '| primaryEmail:', primaryEmail);
 
     // Upsert user in database
     const userId = String(githubUser.id);
@@ -122,8 +131,9 @@ authRouter.get('/github/callback', async (req: Request, res: Response) => {
     // Redirect back to client with token
     res.redirect(`${CLIENT_URL}?token=${token}`);
   } catch (error) {
-    console.error('GitHub OAuth error:', error);
-    res.redirect(`${CLIENT_URL}?error=oauth_failed`);
+    console.error('GitHub OAuth catch error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'unknown';
+    res.redirect(`${CLIENT_URL}?error=oauth_failed&reason=exception&message=${encodeURIComponent(errorMessage)}`);
   }
 });
 

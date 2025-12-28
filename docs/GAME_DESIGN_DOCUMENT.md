@@ -41,12 +41,25 @@ A browser-based idle farming game where players build a rice empire in Vietnam's
 3. **Depth Through Simplicity**: Easy to start, rich to master
 4. **Respect for Time**: Both active and idle play are rewarded appropriately
 
-### 1.4 Technical Constraints
+### 1.4 Technical Stack
 
-- **Stack**: TypeScript + Tailwind CSS (React or Vanilla)
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Frontend** | React 18 + TypeScript | Game UI and engine |
+| **Bundler** | Vite | Fast development and optimized builds |
+| **Backend** | Express.js + TypeScript | Authentication and cloud saves |
+| **Database** | Turso (libSQL) + Drizzle ORM | Edge database for user data |
+| **Auth** | GitHub App OAuth + JWT | User authentication |
+| **Hosting** | Vercel | Frontend and serverless API |
+| **Package Manager** | pnpm workspaces | Monorepo management |
+
+### 1.5 Architecture Principles
+
 - **No Game Engines**: Pure UI-driven experience (no Phaser, PixiJS, etc.)
-- **Hosting**: Static GitHub Pages compatible
-- **Persistence**: LocalStorage with optional cloud sync later
+- **Client-Side Game Logic**: All game calculations run in the browser for responsiveness
+- **API for Persistence**: Backend only handles auth and cloud saves
+- **Offline-First**: LocalStorage fallback when not authenticated
+- **Configuration-Driven**: Balance tuning via config files, not code changes
 
 ---
 
@@ -566,18 +579,16 @@ The following sections require dedicated deep-dives. Each is scoped for a focuse
 - Accessibility requirements
 
 ### 6.5 Game Balance Framework
-**File**: `docs/design/BALANCE_MECHANICS.md` (Requirements) + `src/config/` (Implementation)
+**File**: `docs/design/BALANCE_MECHANICS.md` (Requirements) + `packages/client/src/config/` (Implementation)
 
-> **STATUS**: ✅ Architecture Complete - See below for details
-
-The balance system is implemented as a **configuration-driven architecture**:
+The balance system uses a **configuration-driven architecture**:
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | Mechanics Requirements | `docs/design/BALANCE_MECHANICS.md` | Curve types, multiplier systems, formulas |
-| Type Definitions | `src/config/types/` | TypeScript interfaces for all configs |
-| Balance Tuning | `src/config/balance/` | Curves, timing, formatting, prestige values |
-| Content Data | `src/config/content/` | Resources, buildings, upgrades, events |
+| Type Definitions | `packages/client/src/config/types/` | TypeScript interfaces for all configs |
+| Balance Tuning | `packages/client/src/config/balance/` | Curves, timing, formatting, prestige values |
+| Content Data | `packages/client/src/config/content/` | Resources, buildings, upgrades, events |
 
 **Key Principle**: All balance tuning happens in config files. No code changes needed to adjust:
 - Exponential scaling curves

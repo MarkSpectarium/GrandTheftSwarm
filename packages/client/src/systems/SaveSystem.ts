@@ -1,8 +1,7 @@
 /**
  * SaveSystem - Handles game persistence
  *
- * Manages saving/loading game state to localStorage,
- * with version migration and data validation.
+ * Manages saving/loading game state to localStorage.
  */
 
 import { EventBus, SubscriptionManager } from "../core/EventBus";
@@ -130,11 +129,8 @@ export class SaveSystem {
         return this.loadFromBackup();
       }
 
-      // Migrate if needed
-      const migratedData = this.migrateIfNeeded(saveData);
-
       // Load into state manager
-      this.stateManager.loadState(migratedData.data);
+      this.stateManager.loadState(saveData.data);
 
       this.isDirty = false;
       return true;
@@ -258,25 +254,6 @@ export class SaveSystem {
 
     console.warn("SaveSystem: All backups failed, starting fresh");
     return false;
-  }
-
-  private migrateIfNeeded(saveData: SaveData): SaveData {
-    const currentVersion = "1.0.0";
-    const saveVersion = saveData.version;
-
-    if (saveVersion === currentVersion) {
-      return saveData;
-    }
-
-    // Add migration logic here as versions change
-    // Example:
-    // if (saveVersion === "0.9.0") {
-    //   saveData.data = this.migrateFrom090To100(saveData.data);
-    //   saveData.version = "1.0.0";
-    // }
-
-    console.log(`SaveSystem: Migrated save from ${saveVersion} to ${currentVersion}`);
-    return saveData;
   }
 
   private generateChecksum(data: object): string {

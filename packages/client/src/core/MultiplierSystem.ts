@@ -33,7 +33,6 @@ export interface MultiplierStack {
   isDirty: boolean;
 }
 
-// Re-export ConditionContext for backwards compatibility
 export type { ConditionContext };
 
 export class MultiplierSystem {

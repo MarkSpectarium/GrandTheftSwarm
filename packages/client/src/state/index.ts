@@ -9,10 +9,14 @@ export {
   createResourceState,
   createBuildingState,
   createUpgradeState,
+  toRuntimeState,
+  toSerializableState,
 } from "./GameState";
 
 export type {
   GameState,
+  SerializableGameState,
+  RuntimeGameState,
   ResourceState,
   BuildingState,
   UpgradeState,

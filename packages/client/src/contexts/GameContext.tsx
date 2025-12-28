@@ -8,12 +8,12 @@ import {
   type ReactNode,
 } from 'react';
 import { Game, createGame, getGame } from '../Game';
-import type { GameState } from '../state/GameState';
+import type { RuntimeGameState } from '../state/GameState';
 import type { GameConfig } from '../config';
 
 interface GameContextValue {
   game: Game;
-  state: Readonly<GameState>;
+  state: Readonly<RuntimeGameState>;
   config: GameConfig;
   isInitialized: boolean;
   actions: {
@@ -34,7 +34,7 @@ interface GameProviderProps {
 
 export function GameProvider({ children }: GameProviderProps) {
   const [game, setGame] = useState<Game | null>(null);
-  const [state, setState] = useState<GameState | null>(null);
+  const [state, setState] = useState<RuntimeGameState | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize game on mount
@@ -51,19 +51,13 @@ export function GameProvider({ children }: GameProviderProps) {
     setGame(gameInstance);
 
     // Subscribe to state changes
-    const stateManager = (gameInstance as unknown as { stateManager: { subscribe: (cb: (s: GameState) => void) => () => void; getState: () => GameState } }).stateManager;
+    const stateManager = (gameInstance as unknown as { stateManager: { subscribe: (cb: (s: RuntimeGameState) => void) => () => void; getState: () => RuntimeGameState } }).stateManager;
 
     setState(stateManager.getState());
 
-    const unsubscribe = stateManager.subscribe((newState: GameState) => {
+    const unsubscribe = stateManager.subscribe((newState: RuntimeGameState) => {
       setState(newState);
     });
-
-    // Initialize and start
-    const rootElement = document.getElementById('root');
-    if (rootElement && !gameInstance.getState()) {
-      // Game needs initialization but we handle rendering in React now
-    }
 
     setIsInitialized(true);
     gameInstance.start();

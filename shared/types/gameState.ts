@@ -1,7 +1,8 @@
 /**
  * GameState - Shared game state types
  *
- * These types are shared between client and API.
+ * This is the SINGLE SOURCE OF TRUTH for game state types.
+ * Both client and API import from here.
  */
 
 export interface ResourceState {
@@ -105,6 +106,10 @@ export interface SettingsState {
   theme: "auto" | "light" | "dark";
 }
 
+/**
+ * Base GameState interface with arrays for JSON serialization.
+ * This is what gets saved to the database and sent over the API.
+ */
 export interface GameState {
   /** Save file version for migration */
   version: string;
@@ -133,10 +138,10 @@ export interface GameState {
   /** Player settings */
   settings: SettingsState;
 
-  /** Unlocked features (serialized as array) */
+  /** Unlocked features (as array for JSON serialization) */
   unlockedFeatures: string[];
 
-  /** Earned achievements (serialized as array) */
+  /** Earned achievements (as array for JSON serialization) */
   achievements: string[];
 
   /** Last played timestamp (for offline calculation) */
@@ -147,7 +152,125 @@ export interface GameState {
 }
 
 /**
- * Serializable version of GameState for API transport
- * (Sets converted to arrays)
+ * Alias for clarity - this is what gets serialized/deserialized
  */
 export type SerializableGameState = GameState;
+
+/**
+ * Runtime game state used in the client.
+ * Uses Sets for efficient lookup of unlocked features and achievements.
+ */
+export interface RuntimeGameState extends Omit<GameState, 'unlockedFeatures' | 'achievements'> {
+  /** Unlocked features (Set for efficient lookup) */
+  unlockedFeatures: Set<string>;
+  /** Earned achievements (Set for efficient lookup) */
+  achievements: Set<string>;
+}
+
+/**
+ * Convert serializable state to runtime state
+ */
+export function toRuntimeState(state: GameState): RuntimeGameState {
+  return {
+    ...state,
+    unlockedFeatures: new Set(state.unlockedFeatures),
+    achievements: new Set(state.achievements),
+  };
+}
+
+/**
+ * Convert runtime state to serializable state
+ */
+export function toSerializableState(state: RuntimeGameState): GameState {
+  return {
+    ...state,
+    unlockedFeatures: Array.from(state.unlockedFeatures),
+    achievements: Array.from(state.achievements),
+  };
+}
+
+/**
+ * Create initial game state
+ */
+export function createInitialGameState(): RuntimeGameState {
+  return {
+    version: "1.0.0",
+    currentEra: 1,
+    resources: {},
+    buildings: {},
+    upgrades: {},
+    events: {},
+    prestige: {
+      totalEarned: 0,
+      current: 0,
+      prestigeCount: 0,
+      shopPurchases: {},
+    },
+    statistics: {
+      totalPlayTimeMs: 0,
+      totalClicks: 0,
+      totalClickHarvested: 0,
+      totalBuildingsPurchased: 0,
+      totalUpgradesPurchased: 0,
+      totalEventsTriggered: 0,
+      fastestEraTimes: {},
+      sessionStartTime: Date.now(),
+      lastSaveTime: Date.now(),
+    },
+    settings: {
+      masterVolume: 1,
+      musicVolume: 0.5,
+      sfxVolume: 0.7,
+      notifications: true,
+      numberFormat: "standard",
+      autoSave: true,
+      confirmPrestige: true,
+      showProductionRates: true,
+      theme: "auto",
+    },
+    unlockedFeatures: new Set(["manual_harvest", "basic_buildings"]),
+    achievements: new Set(),
+    lastPlayedAt: Date.now(),
+    isNewGame: true,
+  };
+}
+
+/**
+ * Create initial resource state
+ */
+export function createResourceState(
+  initialAmount: number = 0,
+  maxCapacity: number | null = null,
+  unlocked: boolean = true
+): ResourceState {
+  return {
+    current: initialAmount,
+    lifetime: initialAmount,
+    maxCapacity,
+    unlocked,
+  };
+}
+
+/**
+ * Create initial building state
+ */
+export function createBuildingState(unlocked: boolean = false): BuildingState {
+  return {
+    owned: 0,
+    totalPurchased: 0,
+    unlocked,
+    productionRate: 0,
+    lastProductionTime: Date.now(),
+  };
+}
+
+/**
+ * Create initial upgrade state
+ */
+export function createUpgradeState(): UpgradeState {
+  return {
+    purchased: false,
+    tier: 0,
+    purchaseCount: 0,
+  };
+}

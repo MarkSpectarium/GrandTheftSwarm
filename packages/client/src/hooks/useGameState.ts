@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useGame } from '../contexts/GameContext';
-import type { GameState } from '../state/GameState';
+import type { RuntimeGameState } from '../state/GameState';
 
 /**
  * Subscribe to a specific slice of game state with a selector
  */
-export function useGameState<T>(selector: (state: GameState) => T): T {
+export function useGameState<T>(selector: (state: RuntimeGameState) => T): T {
   const { state } = useGame();
   return selector(state);
 }

@@ -235,7 +235,7 @@ export const gameConfig: GameConfig = {
   buildings: buildingsConfig.buildings,
   buildingTiers: buildingsConfig.buildingTiers,
 
-  // Placeholders for future content files
+  // Not yet implemented
   upgrades: [],
   upgradePaths: [],
   repeatableUpgrades: [],
@@ -243,10 +243,6 @@ export const gameConfig: GameConfig = {
   seasonalEvents: [],
   eventPools: [],
 
-  // ---------------------------------------------------------------------------
-  // ERAS
-  // Placeholder - would be defined in eras.config.ts
-  // ---------------------------------------------------------------------------
   eras: [
     {
       id: 1,

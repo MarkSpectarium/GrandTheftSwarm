@@ -1,223 +1,217 @@
 # Polish Phase: Known Issues & Improvements
 
-This document tracks known shortcuts and areas that need attention before production release. These are acceptable for the foundation phase but should be addressed during polish.
+This document tracks known areas that need attention before production release.
 
 ---
 
-## 1. Formula Expression Evaluator (Security)
+## 1. OAuth Error Handling (UX)
 
-**Location:** `src/core/CurveEvaluator.ts:186-210`
+**Location:** `packages/api/src/routes/auth.ts`
 
-**Issue:** Uses `new Function()` for parsing formula expressions.
-
-**Risk:** Potential security vulnerability if formulas ever come from untrusted sources (currently they don't - all formulas are hardcoded in config).
-
-**Recommended Fix:**
-- Implement a proper expression parser (e.g., mathjs library)
-- Or create a custom safe expression evaluator with whitelisted operators/functions
-- Add input validation to reject suspicious patterns
-
-**Priority:** Medium (low risk in current architecture, but good practice)
-
----
-
-## 2. UI Rendering (Performance & Security)
-
-**Location:** `src/ui/UIRenderer.ts`
-
-**Issue:** Direct DOM manipulation with `innerHTML` instead of a proper virtual DOM or framework.
+**Issue:** OAuth errors redirect to client with generic error codes.
 
 **Problems:**
-- No efficient diffing - re-renders entire sections on changes
-- Potential XSS if any user input were displayed (none currently)
-- Limited component reusability
+- Users see `?error=oauth_failed` without actionable information
+- Debug logging added but not user-friendly
+- No retry mechanism
 
 **Recommended Fix:**
-- Migrate to a lightweight framework (Preact, lit-html, or Solid)
-- Or implement a simple virtual DOM diffing algorithm
-- At minimum, use `textContent` for user-generated content
+- Create an error page component in the client
+- Map error codes to user-friendly messages
+- Add "Try again" button
+- Log detailed errors server-side for debugging
 
-**Priority:** Medium (performance impact grows with complexity)
+**Priority:** Medium (affects user experience on auth failures)
 
 ---
 
-## 3. Building Production Accumulators (Precision)
+## 2. Email Fetching Fallback (Data Quality)
 
-**Location:** `src/systems/BuildingSystem.ts:280-310`
+**Location:** `packages/api/src/routes/auth.ts`
 
-**Issue:** Simple accumulator pattern with 0.01 threshold for fractional production.
+**Issue:** Falls back to profile email when `/user/emails` API doesn't return an array.
 
 **Problems:**
-- Could cause slight visual jitter with very slow production rates
-- Floating point precision issues over long play sessions
+- Some users may not have email in their profile
+- No indication to user that email wasn't captured
+- Could affect features that rely on email
 
 **Recommended Fix:**
-- Use a decimal library (e.g., decimal.js) for high-precision calculations
-- Or accumulate in integer "micro-units" and convert for display
+- Log when fallback is used (currently implemented)
+- Consider prompting user to add email if missing
+- Make email optional in user-facing features
 
-**Priority:** Low (unlikely to cause noticeable issues)
+**Priority:** Low (graceful fallback exists)
 
 ---
 
-## 4. Multiplier Condition Context (Reactivity)
+## 3. JWT Token Security (Security)
 
-**Location:** `src/core/MultiplierSystem.ts`
+**Location:** `packages/api/src/middleware/auth.ts`
 
-**Issue:** The condition context is manually updated rather than being computed.
+**Issue:** JWT tokens have no refresh mechanism and long expiration (30 days).
 
 **Problems:**
-- Requires calling `updateConditionContext()` whenever state changes
-- Could get out of sync if a call is missed
+- Token stolen = long-term access
+- No way to revoke tokens
+- User must re-authenticate if token expires
 
 **Recommended Fix:**
-- Implement a reactive/computed approach using proxies or signals
-- Or add automatic context updates via EventBus subscriptions in MultiplierSystem itself
+- Implement refresh tokens
+- Store token generation time in database
+- Add token revocation on password change/logout
+- Reduce access token expiration to 15-30 minutes
 
-**Priority:** Medium (could cause subtle bugs if missed)
+**Priority:** High (security concern)
 
 ---
 
-## 5. Save System Checksum (Integrity)
+## 4. Database Connection Handling (Reliability)
 
-**Location:** `src/systems/SaveSystem.ts:177-182`
+**Location:** `packages/api/src/db/client.ts`
 
-**Issue:** Simple string length + character sum checksum.
-
-```typescript
-let sum = 0;
-for (let i = 0; i < str.length; i++) {
-  sum += str.charCodeAt(i);
-}
-return `${str.length}:${sum}`;
-```
+**Issue:** Single database client instance without connection pooling or error recovery.
 
 **Problems:**
-- Not cryptographically secure
-- Only catches accidental corruption, not intentional tampering
-- Easy to generate collisions
+- Cold starts may have connection delays
+- No automatic reconnection on failure
+- No connection health checks
 
 **Recommended Fix:**
-- Use CRC32 for better error detection
-- Or use a proper hash (SHA-256) if tamper resistance is needed
-- Consider encrypting save data if cheating is a concern
+- Implement connection health check endpoint
+- Add retry logic for failed queries
+- Consider connection pooling if Turso supports it
+- Add graceful degradation for database outages
 
-**Priority:** Low (current implementation is fine for detecting corruption)
+**Priority:** Medium (could cause intermittent failures)
 
 ---
 
-## 6. Event Handling in UIRenderer (Architecture)
+## 5. Game State Validation (Data Integrity)
 
-**Location:** `src/ui/UIRenderer.ts:203`
+**Location:** Not yet implemented
 
-**Issue:** Uses inline `onclick` attributes for building buy buttons.
-
-```typescript
-onclick="window.gameInstance?.purchaseBuilding('${building.config.id}')"
-```
+**Issue:** No validation of game state data when saving.
 
 **Problems:**
-- Relies on global window object
-- Harder to test
-- Breaks if game instance naming changes
+- Corrupted data could be saved
+- Cheated/modified data could be accepted
+- No version migration for schema changes
 
 **Recommended Fix:**
-- Use event delegation with data attributes
-- Or attach event listeners after rendering
-- Example:
-  ```typescript
-  buildingPanel.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest('[data-building-buy]');
-    if (btn) {
-      const buildingId = btn.getAttribute('data-building-id');
-      this.onBuildingBuy(buildingId);
-    }
-  });
-  ```
+- Use zod or similar for save data validation
+- Implement version field in save schema
+- Add migration system for old saves
+- Server-side validation of reasonable values (anti-cheat)
 
-**Priority:** Medium (affects testability and maintainability)
+**Priority:** High (affects data integrity)
 
 ---
 
-## 7. Missing Systems (Features)
+## 6. Missing Game Systems (Features)
 
-**Issue:** Several systems referenced in config but not implemented.
+**Issue:** Some game systems are not yet implemented.
+
+**Implemented:**
+- GameLoop - Core loop with tick processing
+- ResourceSystem - Production calculations
+- BuildingSystem - Purchase and production logic
+- MultiplierSystem - Bonus calculations
+- CurveEvaluator - Formula evaluation
+- SaveSystem - Local storage persistence
 
 **Missing:**
-- **UpgradeSystem** - Upgrades are defined but no purchase logic
-- **EventSystem** - Random events (Monsoon Blessing, etc.) not implemented
-- **PrestigeSystem** - Prestige logic referenced but not built
-- **Production Chain Processing** - Resource conversions defined but not processed
+- **UpgradeSystem** - Upgrade application (config arrays empty)
+- **EventSystem** - Random events (Monsoon Blessing, etc.)
+- **PrestigeSystem** - Era transitions and resets
 
 **Recommended Fix:**
-- Implement each system following the same patterns as ResourceSystem/BuildingSystem
-- Add to Game.ts initialization
+- Implement UpgradeSystem in `packages/client/src/systems/`
+- Add EventSystem for random/timed events
+- Complete PrestigeSystem for era progression
 
 **Priority:** High (required for full gameplay)
 
 ---
 
-## 8. Type Coercion in State Loading (Safety)
+## 7. Cloud Save Integration (Resilience)
 
-**Location:** `src/state/StateManager.ts:165`
+**Location:** `packages/client/src/systems/SaveSystem.ts`
 
-**Issue:** Trusts loaded save data structure without validation.
-
-```typescript
-const loaded = savedState as Record<string, unknown>;
-```
+**Issue:** LocalStorage is implemented but cloud sync is not integrated.
 
 **Problems:**
-- Corrupted saves could crash the game
-- Old save formats could have missing fields
-- Malformed data could cause runtime errors
+- Cloud saves exist in API but client doesn't use them
+- No sync between local and cloud saves
+- No offline detection
 
 **Recommended Fix:**
-- Use a schema validator (zod, yup, io-ts)
-- Validate each field before using
-- Provide safe defaults for missing/invalid fields
+- Connect SaveSystem to API endpoints
+- Implement sync on login
+- Handle merge conflicts between local and cloud saves
+- Add offline detection and appropriate UI
 
-**Example with zod:**
-```typescript
-const SaveSchema = z.object({
-  version: z.string(),
-  resources: z.record(ResourceStateSchema),
-  // ...
-});
-
-function loadState(data: unknown) {
-  const result = SaveSchema.safeParse(data);
-  if (!result.success) {
-    console.warn('Invalid save data, using defaults');
-    return createInitialGameState();
-  }
-  return result.data;
-}
-```
-
-**Priority:** High (affects save reliability)
+**Priority:** High (major UX concern)
 
 ---
 
-## Implementation Order Recommendation
+## 8. Environment Variable Validation (Developer Experience)
 
-1. **High Priority (before beta):**
-   - #7 Missing Systems - Required for gameplay
-   - #8 Type Coercion - Prevents crashes
+**Location:** `packages/api/src/`
 
-2. **Medium Priority (before release):**
-   - #4 Multiplier Context - Prevents subtle bugs
-   - #6 Event Handling - Improves maintainability
-   - #2 UI Rendering - Performance improvements
+**Issue:** Missing environment variables cause runtime errors without clear messages.
 
-3. **Low Priority (nice to have):**
-   - #1 Formula Evaluator - Only if formulas become user-editable
-   - #3 Production Accumulators - Only if precision issues observed
-   - #5 Save Checksum - Only if tampering is a concern
+**Problems:**
+- Silent failures when env vars missing
+- Unclear error messages
+- Dangerous default for JWT_SECRET
+
+**Recommended Fix:**
+- Validate required env vars at startup
+- Fail fast if JWT_SECRET not set in production
+- Provide clear error messages for missing vars
+- Use a schema validator (zod/envalid)
+
+**Priority:** Medium (developer experience + security)
 
 ---
 
-## Notes
+## 9. Rate Limiting (Security)
 
-- All issues have workarounds in place that are acceptable for development
-- The current architecture is designed to make these improvements straightforward
-- Each fix can be done incrementally without breaking existing functionality
+**Location:** Not implemented
+
+**Issue:** No rate limiting on API endpoints.
+
+**Problems:**
+- Vulnerable to abuse/DoS
+- Save endpoint could be spammed
+- OAuth endpoint could be hammered
+
+**Recommended Fix:**
+- Add rate limiting middleware
+- Different limits per endpoint type
+- Consider Vercel's built-in rate limiting
+- Add IP-based and user-based limits
+
+**Priority:** Medium (security concern for production)
+
+---
+
+## Implementation Order
+
+1. **Critical (before launch):**
+   - #6 Missing Game Systems
+   - #7 Cloud Save Integration
+
+2. **High Priority (before public release):**
+   - #3 JWT Token Security
+   - #5 Game State Validation
+
+3. **Medium Priority (before scaling):**
+   - #1 OAuth Error Handling
+   - #4 Database Connection
+   - #8 Environment Validation
+   - #9 Rate Limiting
+
+4. **Low Priority:**
+   - #2 Email Fallback
