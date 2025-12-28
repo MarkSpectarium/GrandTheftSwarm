@@ -15,7 +15,7 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "clean": "pnpm -r clean",
-    "vercel-build": "pnpm build:client"
+    "vercel-build": "pnpm build:api && node scripts/bundle-api.js && pnpm build:client"
   },
   "keywords": [
     "idle-game",
@@ -43,6 +43,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.7",
+    "esbuild": "^0.20.0",
     "typescript": "^5.6.0"
   }
 }
