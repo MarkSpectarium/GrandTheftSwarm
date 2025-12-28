@@ -46,6 +46,9 @@ export class BuildingSystem {
   private unlockEvaluator: UnlockEvaluator;
   private productionAccumulator: ProductionAccumulator;
 
+  // Tracks accumulated time for batch production buildings (in ms)
+  private batchProductionTimers: Map<string, number> = new Map();
+
   // Cleanup tracking
   private subscriptions = new SubscriptionManager();
 
@@ -66,6 +69,10 @@ export class BuildingSystem {
     // Initialize accumulators for all buildings
     for (const building of config.buildings) {
       this.productionAccumulator.initializeBuilding(building.id);
+      // Initialize batch timers for batch production buildings
+      if (building.production?.batchProduction) {
+        this.batchProductionTimers.set(building.id, 0);
+      }
     }
 
     this.setupEventListeners();
@@ -77,6 +84,7 @@ export class BuildingSystem {
   dispose(): void {
     this.subscriptions.dispose();
     this.productionAccumulator.clear();
+    this.batchProductionTimers.clear();
   }
 
   /**
@@ -424,7 +432,8 @@ export class BuildingSystem {
   }
 
   private processBuilding(config: BuildingConfig, owned: number, deltaSeconds: number): void {
-    const intervalSeconds = config.production.baseIntervalMs / 1000;
+    const intervalMs = config.production.baseIntervalMs;
+    const intervalSeconds = intervalMs / 1000;
     if (intervalSeconds <= 0) return;
 
     // Check if requires active play
@@ -432,6 +441,13 @@ export class BuildingSystem {
       // Only produce if game is in foreground (handled by game loop visibility)
     }
 
+    // Handle batch production mode (discrete trips/cycles)
+    if (config.production.batchProduction) {
+      this.processBatchProduction(config, owned, deltaSeconds * 1000);
+      return;
+    }
+
+    // Standard continuous production below
     // Check if this building has inputs (converters like dingy, rice_mill)
     const hasInputs = config.production.inputs && config.production.inputs.length > 0;
     let productionEfficiency = 1.0;
@@ -481,6 +497,127 @@ export class BuildingSystem {
 
       // Add to accumulator and auto-flush if threshold met
       this.productionAccumulator.addAndFlush(config.id, output.resourceId, amount);
+    }
+  }
+
+  /**
+   * Process batch production - waits for full cycle then produces all at once.
+   * Used for trip-based mechanics like trading boats.
+   */
+  private processBatchProduction(config: BuildingConfig, owned: number, deltaMs: number): void {
+    const intervalMs = config.production.baseIntervalMs;
+
+    // Apply speed multiplier to interval
+    let effectiveIntervalMs = intervalMs;
+    if (config.production.speedStackId) {
+      const speedMult = this.multiplierSystem.getValue(config.production.speedStackId);
+      effectiveIntervalMs = intervalMs / speedMult; // Higher speed = shorter interval
+    }
+
+    // Accumulate time
+    const currentTimer = this.batchProductionTimers.get(config.id) ?? 0;
+    let accumulatedMs = currentTimer + deltaMs;
+
+    // Process as many complete cycles as we can
+    while (accumulatedMs >= effectiveIntervalMs) {
+      // Check if we have enough inputs for a full batch
+      if (config.production.inputs && config.production.inputs.length > 0) {
+        if (!this.canAffordBatchInputs(config, owned)) {
+          // Not enough inputs - pause the timer and wait
+          break;
+        }
+        // Consume full batch of inputs
+        this.consumeBatchInputs(config, owned);
+      }
+
+      // Produce full batch of outputs
+      this.produceBatchOutputs(config, owned);
+
+      // Subtract one cycle
+      accumulatedMs -= effectiveIntervalMs;
+
+      // Emit event for UI feedback
+      EventBus.emit("building:batch:complete", {
+        buildingId: config.id,
+        buildingName: config.name,
+      });
+    }
+
+    // Save remaining time
+    this.batchProductionTimers.set(config.id, accumulatedMs);
+  }
+
+  /**
+   * Check if we can afford inputs for one complete batch
+   */
+  private canAffordBatchInputs(config: BuildingConfig, owned: number): boolean {
+    if (!config.production.inputs) return true;
+
+    for (const input of config.production.inputs) {
+      const baseAmount = typeof input.amount === "number"
+        ? input.amount
+        : this.curveEvaluator.evaluate(input.amount, { owned });
+
+      const needed = baseAmount * owned;
+      const available = this.resourceSystem.getAmount(input.resourceId);
+
+      if (available < needed) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Consume inputs for one complete batch
+   */
+  private consumeBatchInputs(config: BuildingConfig, owned: number): void {
+    if (!config.production.inputs) return;
+
+    for (const input of config.production.inputs) {
+      const baseAmount = typeof input.amount === "number"
+        ? input.amount
+        : this.curveEvaluator.evaluate(input.amount, { owned });
+
+      const toConsume = baseAmount * owned;
+      this.resourceSystem.spendResource(
+        input.resourceId,
+        toConsume,
+        `batch:${config.id}`
+      );
+    }
+  }
+
+  /**
+   * Produce outputs for one complete batch
+   */
+  private produceBatchOutputs(config: BuildingConfig, owned: number): void {
+    for (const output of config.production.outputs) {
+      let amount = output.baseAmount * owned;
+
+      // Apply chance modifier
+      if (output.chance !== undefined && output.chance < 1) {
+        if (Math.random() > output.chance) {
+          continue;
+        }
+      }
+
+      // Apply multipliers
+      const allProdMult = this.multiplierSystem.getValue("all_production");
+      amount *= allProdMult;
+
+      if (config.production.amountStackId) {
+        const specificMult = this.multiplierSystem.getValue(config.production.amountStackId);
+        amount *= specificMult;
+      }
+
+      // Add resources directly (batch mode doesn't use accumulator)
+      this.resourceSystem.addResource(
+        output.resourceId,
+        amount,
+        `batch:${config.id}`,
+        false // Don't apply production multipliers again
+      );
     }
   }
 

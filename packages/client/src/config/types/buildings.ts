@@ -190,6 +190,13 @@ export interface ProductionConfig extends Omit<SharedProductionConfig, 'outputs'
 
   /** Multiplier stack that affects production amount (client-only) */
   amountStackId?: string;
+
+  /**
+   * If true, production happens in discrete batches rather than continuously.
+   * Waits for full production cycle, then consumes all inputs and produces all outputs at once.
+   * Useful for trip-based mechanics like trading boats.
+   */
+  batchProduction?: boolean;
 }
 
 // =============================================================================

@@ -24,9 +24,22 @@ function isBuildingUnlocked(buildings: Record<string, { unlocked?: boolean }>, i
   return buildings[id]?.unlocked ?? false;
 }
 
+// Interface for accessing multiplier system
+interface GameWithMultipliers {
+  multiplierSystem?: {
+    getValue: (stackId: string) => number;
+  };
+}
+
 export function FarmVisualization() {
-  const { state } = useGame();
+  const { state, game } = useGame();
   const { buildings, currentEra } = state;
+
+  // Get dingy speed multiplier for animation timing
+  const dingySpeedMultiplier = useMemo(() => {
+    const gameWithMult = game as unknown as GameWithMultipliers;
+    return gameWithMult.multiplierSystem?.getValue('dingy_speed') ?? 1;
+  }, [game, state]); // Re-check when state changes (upgrades purchased)
 
   // Calculate farm state based on buildings owned
   const farmState = useMemo(() => {
@@ -171,7 +184,14 @@ export function FarmVisualization() {
         ))}
         {/* Dingy Trading Boat */}
         {farmState.hasDingy && (
-          <div className="dingy-container">
+          <div
+            className="dingy-container"
+            style={{
+              // Animation duration scales with speed multiplier (faster = shorter)
+              // Base is 10s, minimum 2s to keep animation visible
+              '--dingy-duration': `${Math.max(2, 10 / dingySpeedMultiplier)}s`,
+            } as React.CSSProperties}
+          >
             <span className="dingy">🚣</span>
             <span className="dingy-rice rice-1">🌾</span>
             <span className="dingy-rice rice-2">🌾</span>

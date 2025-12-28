@@ -422,6 +422,7 @@
 
 /* =============================================================================
    Dingy Trading Animation
+   Duration is controlled by --dingy-duration CSS variable (set via React)
    ============================================================================= */
 
 .dingy-container {
@@ -430,7 +431,8 @@
   left: 0;
   width: 40px;
   height: 32px;
-  animation: dingy-journey 10s ease-in-out infinite;
+  /* Use CSS variable for duration, fallback to 10s */
+  animation: dingy-journey var(--dingy-duration, 10s) ease-in-out infinite;
 }
 
 .dingy {
@@ -454,18 +456,18 @@
 }
 
 .dingy-rice.rice-1 {
-  animation: rice-fly-in 10s ease-out infinite;
+  animation: rice-fly-in var(--dingy-duration, 10s) ease-out infinite;
   animation-delay: 0s;
 }
 
 .dingy-rice.rice-2 {
-  animation: rice-fly-in 10s ease-out infinite;
+  animation: rice-fly-in var(--dingy-duration, 10s) ease-out infinite;
   animation-delay: 0.3s;
   left: 25px;
 }
 
 .dingy-rice.rice-3 {
-  animation: rice-fly-in 10s ease-out infinite;
+  animation: rice-fly-in var(--dingy-duration, 10s) ease-out infinite;
   animation-delay: 0.6s;
   left: 15px;
 }
@@ -480,18 +482,18 @@
 }
 
 .dingy-dong.dong-1 {
-  animation: dong-fly-out 10s ease-out infinite;
+  animation: dong-fly-out var(--dingy-duration, 10s) ease-out infinite;
   animation-delay: 0s;
 }
 
 .dingy-dong.dong-2 {
-  animation: dong-fly-out 10s ease-out infinite;
+  animation: dong-fly-out var(--dingy-duration, 10s) ease-out infinite;
   animation-delay: 0.25s;
   left: 25px;
 }
 
 .dingy-dong.dong-3 {
-  animation: dong-fly-out 10s ease-out infinite;
+  animation: dong-fly-out var(--dingy-duration, 10s) ease-out infinite;
   animation-delay: 0.5s;
   left: 15px;
 }

@@ -311,6 +311,7 @@ export const buildings: BuildingConfig[] = [
       ...getSharedProduction("dingy"),
       speedStackId: "dingy_speed",
       amountStackId: "dingy_profit",
+      batchProduction: true, // Complete trips - waits 10s, then sells all at once
     },
 
     resetsOnPrestige: true,
