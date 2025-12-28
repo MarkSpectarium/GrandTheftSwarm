@@ -6,6 +6,7 @@ import { UpgradePanel } from './UpgradePanel';
 import { StatsPanel } from './StatsPanel';
 import { AuthButton } from './AuthButton';
 import { DebugResetButton } from './DebugResetButton';
+import { FarmVisualization } from './FarmVisualization';
 
 export function GameContainer() {
   return (
@@ -13,6 +14,7 @@ export function GameContainer() {
       <DebugResetButton />
       <AuthButton />
       <GameHeader />
+      <FarmVisualization />
       <main className="game-main">
         <ResourcePanel />
         <HarvestButton />

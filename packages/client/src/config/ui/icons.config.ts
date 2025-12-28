@@ -12,6 +12,7 @@ export const resourceIcons: Record<string, string> = {
   // Era 1: Roots
   rice: "🌾",
   dong: "💰",
+  water: "💧",
 
   // Era 2: Growth
   rice_flour: "🍚",
@@ -26,10 +27,15 @@ export const resourceIcons: Record<string, string> = {
  * Building icons by building ID
  */
 export const buildingIcons: Record<string, string> = {
-  // Era 1: Roots
+  // Era 1: Roots - Production
   paddy_field: "🟩",
   family_worker: "👨‍🌾",
   buffalo: "🐃",
+
+  // Era 1: Roots - Water Supply
+  village_well: "⛲",
+  water_carrier: "🚶",
+  irrigation_canal: "🌊",
 
   // Era 2: Growth
   rice_mill: "🏭",
@@ -37,6 +43,7 @@ export const buildingIcons: Record<string, string> = {
   noodle_workshop: "🍜",
 
   // Era 3+: Future
+  motorboat: "🚤",
   harvest_drone: "🤖",
 };
 
