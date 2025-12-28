@@ -357,9 +357,20 @@ export class StateManager {
   }
 
   private notifySubscribers(): void {
+    // Clone state to create a new reference for React change detection
+    const clonedState: RuntimeGameState = {
+      ...this.state,
+      resources: { ...this.state.resources },
+      buildings: { ...this.state.buildings },
+      upgrades: { ...this.state.upgrades },
+      statistics: { ...this.state.statistics },
+      unlockedFeatures: new Set(this.state.unlockedFeatures),
+      achievements: new Set(this.state.achievements),
+    };
+
     for (const callback of this.subscribers) {
       try {
-        callback(this.state);
+        callback(clonedState);
       } catch (error) {
         console.error("StateManager: Error in subscriber:", error);
       }
