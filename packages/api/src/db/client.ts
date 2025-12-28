@@ -1,12 +1,14 @@
-import { createClient, type Client } from '@libsql/client';
+import { createClient } from '@libsql/client';
 import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
 import * as schema from './schema';
 
+type LibSQLClient = ReturnType<typeof createClient>;
+
 // Lazy initialization to prevent crashes when env vars are missing
-let client: Client | null = null;
+let client: LibSQLClient | null = null;
 let dbInstance: LibSQLDatabase<typeof schema> | null = null;
 
-function getClient(): Client {
+function getClient(): LibSQLClient {
   if (!client) {
     const url = process.env.TURSO_DATABASE_URL;
     if (!url) {
