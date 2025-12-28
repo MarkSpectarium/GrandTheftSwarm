@@ -27,12 +27,14 @@ interface FarmState {
   canalCount: number;
   millCount: number;
   sampanCount: number;
+  dingyCount: number;
   density: number;
   tier: number;
   era: number;
   hasCanal: boolean;
   hasMill: boolean;
   hasBoats: boolean;
+  hasDingy: boolean;
 }
 
 interface PaddyCellData {
@@ -152,6 +154,21 @@ const Boat = memo(function Boat({ index }: { index: number }) {
   );
 });
 
+/** Dingy trading boat with rice/dong animation */
+const Dingy = memo(function Dingy() {
+  return (
+    <div className="dingy-container">
+      <span className="dingy">🚣</span>
+      <span className="dingy-rice rice-1">🌾</span>
+      <span className="dingy-rice rice-2">🌾</span>
+      <span className="dingy-rice rice-3">🌾</span>
+      <span className="dingy-dong dong-1">💰</span>
+      <span className="dingy-dong dong-2">💰</span>
+      <span className="dingy-dong dong-3">💰</span>
+    </div>
+  );
+});
+
 /** Static water flow component */
 const WaterFlow = memo(function WaterFlow() {
   return (
@@ -164,13 +181,15 @@ const WaterFlow = memo(function WaterFlow() {
   );
 });
 
-/** River layer with boats */
+/** River layer with boats and dingy */
 const RiverLayer = memo(function RiverLayer({
   hasCanal,
-  sampanCount
+  sampanCount,
+  hasDingy,
 }: {
   hasCanal: boolean;
   sampanCount: number;
+  hasDingy: boolean;
 }) {
   // Pre-generate boat indices to avoid recreating array each render
   const boatIndices = useMemo(() =>
@@ -182,6 +201,7 @@ const RiverLayer = memo(function RiverLayer({
     <div className={`farm-river ${hasCanal ? 'with-canal' : ''}`}>
       <WaterFlow />
       {boatIndices.map(i => <Boat key={i} index={i} />)}
+      {hasDingy && <Dingy />}
     </div>
   );
 });
@@ -307,6 +327,7 @@ function computeFarmState(
   const canalCount = getBuildingCount(buildings, 'irrigation_canal');
   const millCount = getBuildingCount(buildings, 'rice_mill');
   const sampanCount = getBuildingCount(buildings, 'sampan');
+  const dingyCount = getBuildingCount(buildings, 'dingy');
 
   // Calculate visual density (how "full" the farm looks)
   const totalBuildings = paddyCount + wellCount + canalCount + millCount;
@@ -327,12 +348,14 @@ function computeFarmState(
     canalCount: Math.min(canalCount, DISPLAY_CAPS.canal),
     millCount: Math.min(millCount, DISPLAY_CAPS.mill),
     sampanCount: Math.min(sampanCount, DISPLAY_CAPS.sampan),
+    dingyCount,
     density,
     tier,
     era: currentEra,
     hasCanal: isBuildingUnlocked(buildings, 'irrigation_canal') && canalCount > 0,
     hasMill: millCount > 0,
     hasBoats: sampanCount > 0,
+    hasDingy: dingyCount > 0,
   };
 }
 
@@ -375,6 +398,7 @@ export function FarmVisualization() {
       <RiverLayer
         hasCanal={farmState.hasCanal}
         sampanCount={farmState.sampanCount}
+        hasDingy={farmState.hasDingy}
       />
       <ProgressBar density={farmState.density} />
     </div>

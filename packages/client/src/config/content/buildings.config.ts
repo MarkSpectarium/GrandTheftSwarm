@@ -275,6 +275,48 @@ export const buildings: BuildingConfig[] = [
   },
 
   // ---------------------------------------------------------------------------
+  // ERA 1: TRADING
+  // ---------------------------------------------------------------------------
+
+  {
+    id: "dingy",
+    name: "Dingy",
+    namePlural: "Dingies",
+    description: "A small wooden boat that transports rice to market and sells it for Dong.",
+    flavorText: "Row, row, row your boat, gently down the stream...",
+    category: "transport",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "resource_lifetime",
+        params: { resource: "rice", amount: 500 },
+        description: "Harvest 500 rice",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "dingy",
+    visualTier: 1,
+
+    // First dingy costs rice, subsequent ones cost dong with 5x scaling
+    baseCost: [
+      { resourceId: "rice", amount: 1000 },
+    ],
+    subsequentCost: [
+      { resourceId: "dong", amount: 1000 },
+    ],
+    costCurve: "cost_dingy_5x", // 5x increase per purchase
+    allowBulkPurchase: false, // Expensive, no bulk buying
+
+    production: {
+      ...getSharedProduction("dingy"),
+      speedStackId: "dingy_speed",
+      amountStackId: "dingy_profit",
+    },
+
+    resetsOnPrestige: true,
+  },
+
+  // ---------------------------------------------------------------------------
   // ERA 2 BUILDINGS
   // ---------------------------------------------------------------------------
 

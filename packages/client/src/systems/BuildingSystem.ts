@@ -157,6 +157,15 @@ export class BuildingSystem {
     if (!config) return [];
 
     const owned = this.stateManager.getBuilding(buildingId)?.owned ?? 0;
+
+    // Check if this building has separate costs for first vs subsequent purchases
+    const hasSubsequentCost = config.subsequentCost && config.subsequentCost.length > 0;
+
+    if (hasSubsequentCost) {
+      return this.calculateCostWithSubsequent(config, owned, count);
+    }
+
+    // Standard cost calculation
     const costs: BuildingCost[] = [];
 
     // For bulk purchases, sum the cost of each individual purchase
@@ -181,6 +190,62 @@ export class BuildingSystem {
       costs.push({
         resourceId: baseCost.resourceId,
         amount: Math.ceil(totalCost),
+      });
+    }
+
+    return costs;
+  }
+
+  /**
+   * Calculate cost for buildings with different first/subsequent costs.
+   * First purchase uses baseCost, subsequent purchases use subsequentCost with curve scaling.
+   */
+  private calculateCostWithSubsequent(
+    config: BuildingConfig,
+    owned: number,
+    count: number
+  ): BuildingCost[] {
+    const costMap = new Map<string, number>();
+    const costReduction = this.multiplierSystem.getValue("building_cost");
+
+    for (let i = 0; i < count; i++) {
+      const purchaseIndex = owned + i;
+
+      if (purchaseIndex === 0) {
+        // First purchase uses baseCost (no curve multiplier for first)
+        for (const baseCost of config.baseCost) {
+          const baseAmount = typeof baseCost.amount === "number"
+            ? baseCost.amount
+            : this.curveEvaluator.evaluate(baseCost.amount, { owned: 0 });
+
+          const currentTotal = costMap.get(baseCost.resourceId) ?? 0;
+          costMap.set(baseCost.resourceId, currentTotal + baseAmount * costReduction);
+        }
+      } else {
+        // Subsequent purchases use subsequentCost with curve scaling
+        // The curve is evaluated based on how many subsequent purchases have been made
+        // (owned - 1 for the first subsequent, owned for the second, etc.)
+        const subsequentIndex = purchaseIndex - 1; // 0-indexed for subsequent purchases
+        const context = { owned: subsequentIndex };
+        const multiplier = this.curveEvaluator.evaluate(config.costCurve, context);
+
+        for (const subCost of config.subsequentCost!) {
+          const baseAmount = typeof subCost.amount === "number"
+            ? subCost.amount
+            : this.curveEvaluator.evaluate(subCost.amount, { owned: 0 });
+
+          const currentTotal = costMap.get(subCost.resourceId) ?? 0;
+          costMap.set(subCost.resourceId, currentTotal + baseAmount * multiplier * costReduction);
+        }
+      }
+    }
+
+    // Convert map to array
+    const costs: BuildingCost[] = [];
+    for (const [resourceId, amount] of costMap) {
+      costs.push({
+        resourceId,
+        amount: Math.ceil(amount),
       });
     }
 
@@ -360,14 +425,36 @@ export class BuildingSystem {
 
   private processBuilding(config: BuildingConfig, owned: number, deltaSeconds: number): void {
     const intervalSeconds = config.production.baseIntervalMs / 1000;
+    if (intervalSeconds <= 0) return;
 
     // Check if requires active play
     if (config.production.requiresActive) {
       // Only produce if game is in foreground (handled by game loop visibility)
     }
 
+    // Check if this building has inputs (converters like dingy, rice_mill)
+    const hasInputs = config.production.inputs && config.production.inputs.length > 0;
+    let productionEfficiency = 1.0;
+
+    if (hasInputs) {
+      // Calculate how much input we would need this tick
+      // and determine what fraction we can actually produce
+      productionEfficiency = this.calculateInputEfficiency(config, owned, deltaSeconds, intervalSeconds);
+
+      // If we can't produce anything, skip this building
+      if (productionEfficiency <= 0) {
+        return;
+      }
+
+      // Consume inputs proportionally
+      this.consumeInputs(config, owned, deltaSeconds, intervalSeconds, productionEfficiency);
+    }
+
     for (const output of config.production.outputs) {
       let amount = output.baseAmount * owned * deltaSeconds / intervalSeconds;
+
+      // Apply input efficiency (for converter buildings)
+      amount *= productionEfficiency;
 
       // Apply chance modifier
       if (output.chance !== undefined && output.chance < 1) {
@@ -394,6 +481,68 @@ export class BuildingSystem {
 
       // Add to accumulator and auto-flush if threshold met
       this.productionAccumulator.addAndFlush(config.id, output.resourceId, amount);
+    }
+  }
+
+  /**
+   * Calculate what fraction of production we can achieve based on available inputs
+   */
+  private calculateInputEfficiency(
+    config: BuildingConfig,
+    owned: number,
+    deltaSeconds: number,
+    intervalSeconds: number
+  ): number {
+    if (!config.production.inputs) return 1.0;
+
+    let minEfficiency = 1.0;
+
+    for (const input of config.production.inputs) {
+      // Resolve amount (could be a curve reference or direct number)
+      const baseAmount = typeof input.amount === "number"
+        ? input.amount
+        : this.curveEvaluator.evaluate(input.amount, { owned });
+
+      const neededPerTick = baseAmount * owned * deltaSeconds / intervalSeconds;
+      const available = this.resourceSystem.getAmount(input.resourceId);
+
+      if (neededPerTick > 0) {
+        const efficiency = Math.min(1.0, available / neededPerTick);
+        minEfficiency = Math.min(minEfficiency, efficiency);
+      }
+    }
+
+    return minEfficiency;
+  }
+
+  /**
+   * Consume input resources for production
+   */
+  private consumeInputs(
+    config: BuildingConfig,
+    owned: number,
+    deltaSeconds: number,
+    intervalSeconds: number,
+    efficiency: number
+  ): void {
+    if (!config.production.inputs) return;
+
+    for (const input of config.production.inputs) {
+      // Resolve amount (could be a curve reference or direct number)
+      const baseAmount = typeof input.amount === "number"
+        ? input.amount
+        : this.curveEvaluator.evaluate(input.amount, { owned });
+
+      const baseNeeded = baseAmount * owned * deltaSeconds / intervalSeconds;
+      const actualConsume = baseNeeded * efficiency;
+
+      if (actualConsume > 0) {
+        this.resourceSystem.spendResource(
+          input.resourceId,
+          actualConsume,
+          `production:${config.id}`
+        );
+      }
     }
   }
 
