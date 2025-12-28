@@ -10,10 +10,10 @@
     }
   ],
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "memory": 256,
       "maxDuration": 10,
-      "includeFiles": "{packages/api/src,shared}/**/*"
+      "includeFiles": "{packages/api/dist,shared}/**/*"
     }
   }
 }
