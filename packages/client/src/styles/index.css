@@ -221,6 +221,17 @@ body {
   opacity: 0.6;
 }
 
+.building-item.health-critical {
+  border-color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+  animation: pulse-danger 1s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 68, 68, 0); }
+}
+
 .building-header {
   display: flex;
   align-items: center;
@@ -240,6 +251,55 @@ body {
 .building-owned {
   font-size: 0.875rem;
   color: var(--secondary-color);
+}
+
+/* Building Health Bar */
+.building-health {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.health-bar-container {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.health-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.health-bar-fill.critical {
+  background: linear-gradient(90deg, #ff4444, #ff8888);
+  animation: flash-critical 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes flash-critical {
+  from { opacity: 1; }
+  to { opacity: 0.7; }
+}
+
+.health-text {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--secondary-color);
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Building Consumption */
+.building-consumption {
+  display: block;
+  color: #e67e22;
+  font-weight: 500;
+  margin-top: 2px;
 }
 
 .building-info {

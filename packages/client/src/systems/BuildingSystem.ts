@@ -26,6 +26,15 @@ export interface BuildingInfo {
   canAfford: boolean;
   currentCost: BuildingCost[];
   productionPerSecond: Record<string, number>;
+  /** Health info for buildings with consumption (undefined if no consumption) */
+  health?: {
+    current: number;
+    max: number;
+    percentage: number;
+    isCritical: boolean;
+  };
+  /** Consumption per tick (undefined if no consumption) */
+  consumptionPerTick?: Record<string, number>;
 }
 
 export class BuildingSystem {
@@ -93,6 +102,29 @@ export class BuildingSystem {
 
     const productionPerSecond = this.calculateProductionPerSecond(buildingId);
 
+    // Calculate health info for buildings with consumption
+    let health: BuildingInfo["health"] = undefined;
+    let consumptionPerTick: BuildingInfo["consumptionPerTick"] = undefined;
+
+    if (config.consumption && owned > 0) {
+      const currentHealth = state?.health ?? config.consumption.maxHealth;
+      const maxHealth = config.consumption.maxHealth;
+      const percentage = maxHealth > 0 ? (currentHealth / maxHealth) * 100 : 0;
+
+      health = {
+        current: currentHealth,
+        max: maxHealth,
+        percentage,
+        isCritical: percentage <= 25,
+      };
+
+      // Calculate consumption per tick
+      consumptionPerTick = {};
+      for (const resource of config.consumption.resources) {
+        consumptionPerTick[resource.resourceId] = resource.amountPerTick * owned;
+      }
+    }
+
     return {
       config,
       owned,
@@ -100,6 +132,8 @@ export class BuildingSystem {
       canAfford,
       currentCost,
       productionPerSecond,
+      health,
+      consumptionPerTick,
     };
   }
 

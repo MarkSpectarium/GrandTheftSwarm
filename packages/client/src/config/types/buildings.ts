@@ -90,6 +90,13 @@ export interface BuildingConfig {
   specialEffects?: SpecialEffect[];
 
   // ---------------------------------------------------------------------------
+  // CONSUMPTION (for buildings that need resources to survive)
+  // ---------------------------------------------------------------------------
+
+  /** Resource consumption configuration (e.g., buffalo need water) */
+  consumption?: ConsumptionConfig;
+
+  // ---------------------------------------------------------------------------
   // LIMITS
   // ---------------------------------------------------------------------------
 
@@ -111,7 +118,38 @@ export type BuildingCategory =
   | "automation"    // Workers, drones
   | "transport"     // Boats, vehicles
   | "infrastructure"// Roads, docks
+  | "supply"        // Produces consumable resources (wells, water carriers)
   | "special";      // Unique buildings
+
+// =============================================================================
+// CONSUMPTION CONFIG (for buildings that need resources to survive)
+// =============================================================================
+
+/**
+ * Defines resource consumption for a building
+ * Buildings with consumption will lose health when resources are insufficient
+ */
+export interface ConsumptionConfig {
+  /** Resources consumed per tick (per building owned) */
+  resources: ConsumptionResource[];
+
+  /** Maximum health per building unit (default: 100) */
+  maxHealth: number;
+
+  /** What happens when health reaches 0 */
+  onDeath: "remove" | "disable";
+}
+
+export interface ConsumptionResource {
+  /** Resource ID to consume */
+  resourceId: string;
+
+  /** Amount consumed per tick per building */
+  amountPerTick: number;
+
+  /** Health lost per unit of missing resource */
+  healthLossPerMissing: number;
+}
 
 // =============================================================================
 // PRODUCTION CONFIG

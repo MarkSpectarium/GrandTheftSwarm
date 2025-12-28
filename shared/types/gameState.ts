@@ -27,6 +27,10 @@ export interface BuildingState {
   productionRate: number;
   /** Last production tick */
   lastProductionTime: number;
+  /** Current health (for buildings with consumption, undefined if no consumption) */
+  health?: number;
+  /** Maximum health (for buildings with consumption) */
+  maxHealth?: number;
 }
 
 export interface UpgradeState {

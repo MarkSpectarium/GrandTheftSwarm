@@ -113,7 +113,7 @@ export const buildings: BuildingConfig[] = [
     id: "buffalo",
     name: "Water Buffalo",
     namePlural: "Water Buffalo",
-    description: "Strong and steady. Plows fields without rest.",
+    description: "Strong and steady. Plows fields without rest. Needs water to survive!",
     flavorText: "A farmer's best friend since ancient times.",
     category: "automation",
     unlockedAtEra: 1,
@@ -140,6 +140,19 @@ export const buildings: BuildingConfig[] = [
       amountStackId: "buffalo_production",
     },
 
+    // Buffalo consume water - they will lose health and die without it!
+    consumption: {
+      resources: [
+        {
+          resourceId: "water",
+          amountPerTick: 3, // 3 liters per tick per buffalo
+          healthLossPerMissing: 1, // Lose 1 health per missing liter
+        },
+      ],
+      maxHealth: 100,
+      onDeath: "remove", // Buffalo dies when health reaches 0
+    },
+
     specialEffects: [
       {
         type: "synergy",
@@ -150,6 +163,113 @@ export const buildings: BuildingConfig[] = [
         description: "Each buffalo increases paddy field production by 10%",
       },
     ],
+
+    resetsOnPrestige: true,
+  },
+
+  // ---------------------------------------------------------------------------
+  // ERA 1: WATER SUPPLIERS
+  // ---------------------------------------------------------------------------
+
+  {
+    id: "village_well",
+    name: "Village Well",
+    namePlural: "Village Wells",
+    description: "A simple well that provides a steady trickle of water.",
+    flavorText: "The village gathers here at dawn.",
+    category: "supply",
+    unlockedAtEra: 1,
+    unlockRequirements: [], // Available from start
+    visibleBeforeUnlock: true,
+    icon: "well",
+    visualTier: 1,
+
+    baseCost: [
+      { resourceId: "dong", amount: 50 },
+    ],
+    costCurve: "cost_standard",
+    allowBulkPurchase: true,
+    bulkOptions: [1, 10],
+
+    production: {
+      ...getSharedProduction("village_well"),
+      amountStackId: "water_production",
+    },
+
+    resetsOnPrestige: true,
+  },
+
+  {
+    id: "water_carrier",
+    name: "Water Carrier",
+    namePlural: "Water Carriers",
+    description: "A villager who carries water from the river. Works harder when you're watching!",
+    flavorText: "Back and forth, bucket by bucket.",
+    category: "supply",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "village_well", count: 1 },
+        description: "Own a Village Well",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "carrier",
+    visualTier: 1,
+
+    baseCost: [
+      { resourceId: "dong", amount: 150 },
+    ],
+    costCurve: "cost_aggressive",
+    allowBulkPurchase: true,
+    bulkOptions: [1, 10],
+
+    production: {
+      ...getSharedProduction("water_carrier"),
+      amountStackId: "water_production",
+    },
+
+    maxOwned: 10, // Limited by village population
+    resetsOnPrestige: true,
+  },
+
+  {
+    id: "irrigation_canal",
+    name: "Irrigation Canal",
+    namePlural: "Irrigation Canals",
+    description: "A network of channels that brings river water to your fields. Expensive but efficient.",
+    flavorText: "The ancients knew: control water, control life.",
+    category: "supply",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "water_carrier", count: 3 },
+        description: "Hire 3 Water Carriers",
+      },
+      {
+        type: "building_owned",
+        params: { building: "paddy_field", count: 5 },
+        description: "Own 5 Paddy Fields",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "canal",
+    visualTier: 1,
+
+    baseCost: [
+      { resourceId: "dong", amount: 500 },
+      { resourceId: "rice", amount: 2000 },
+    ],
+    costCurve: "cost_tiered",
+    allowBulkPurchase: true,
+    bulkOptions: [1, 5],
+
+    production: {
+      ...getSharedProduction("irrigation_canal"),
+      amountStackId: "water_production",
+    },
 
     resetsOnPrestige: true,
   },
