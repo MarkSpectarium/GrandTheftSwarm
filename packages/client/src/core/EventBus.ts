@@ -58,7 +58,19 @@ export type GameEventType =
   | "ui:notification"
   | "ui:modal:open"
   | "ui:modal:close"
-  | "ui:tab:changed";
+  | "ui:tab:changed"
+
+  // Cloud sync events
+  | "cloud:sync:start"
+  | "cloud:sync:success"
+  | "cloud:sync:error"
+  | "cloud:sync:conflict"
+  | "cloud:load:start"
+  | "cloud:load:success"
+  | "cloud:load:error"
+  | "cloud:load:empty"
+  | "cloud:offline:progress"
+  | "cloud:conflict:error";
 
 export interface GameEventPayload {
   "game:tick": { deltaMs: number; totalMs: number };
@@ -104,6 +116,18 @@ export interface GameEventPayload {
   "ui:modal:open": { modalId: string };
   "ui:modal:close": { modalId: string };
   "ui:tab:changed": { tabId: string };
+
+  // Cloud sync events
+  "cloud:sync:start": Record<string, never>;
+  "cloud:sync:success": { save?: unknown };
+  "cloud:sync:error": { error: unknown };
+  "cloud:sync:conflict": { localSave: unknown; cloudSave: unknown; localTimestamp: number; cloudTimestamp: number };
+  "cloud:load:start": Record<string, never>;
+  "cloud:load:success": { save: unknown };
+  "cloud:load:error": { error: unknown };
+  "cloud:load:empty": Record<string, never>;
+  "cloud:offline:progress": { resourcesGained: Record<string, number>; offlineTimeMs: number; efficiencyApplied: number };
+  "cloud:conflict:error": { error: unknown };
 }
 
 type EventCallback<T extends GameEventType> = (payload: GameEventPayload[T]) => void;
