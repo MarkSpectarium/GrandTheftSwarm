@@ -119,11 +119,12 @@ export const buildingProductionDefinitions: BuildingProductionDefinition[] = [
 
   // ---------------------------------------------------------------------------
   // ERA 1: WATER SUPPLIERS
+  // Buffalo consume 3L/tick each, so scale water production accordingly
   // ---------------------------------------------------------------------------
   {
     id: 'village_well',
     production: {
-      outputs: [{ resourceId: 'water', baseAmount: 1 }],
+      outputs: [{ resourceId: 'water', baseAmount: 9 }], // Supports 3 buffalo
       baseIntervalMs: 1000,
       requiresActive: false,
       idleEfficiency: 1.0,
@@ -132,7 +133,7 @@ export const buildingProductionDefinitions: BuildingProductionDefinition[] = [
   {
     id: 'water_carrier',
     production: {
-      outputs: [{ resourceId: 'water', baseAmount: 3 }],
+      outputs: [{ resourceId: 'water', baseAmount: 27 }], // Supports 9 buffalo
       baseIntervalMs: 1000,
       requiresActive: false,
       idleEfficiency: 0.5, // Less efficient when idle (they rest!)
@@ -141,7 +142,7 @@ export const buildingProductionDefinitions: BuildingProductionDefinition[] = [
   {
     id: 'irrigation_canal',
     production: {
-      outputs: [{ resourceId: 'water', baseAmount: 8 }],
+      outputs: [{ resourceId: 'water', baseAmount: 72 }], // Supports 24 buffalo
       baseIntervalMs: 1000,
       requiresActive: false,
       idleEfficiency: 1.0,
