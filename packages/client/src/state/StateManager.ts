@@ -364,6 +364,12 @@ export class StateManager {
       );
     }
 
+    // Give player a free Village Well to start with water production
+    if (state.buildings["village_well"]) {
+      state.buildings["village_well"].owned = 1;
+      state.buildings["village_well"].totalPurchased = 1;
+    }
+
     return state;
   }
 
