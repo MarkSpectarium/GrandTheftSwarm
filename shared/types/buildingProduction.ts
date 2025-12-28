@@ -37,30 +37,23 @@ export interface ProductionConfig {
 }
 
 /**
- * Core building definition - shared between client and API
+ * Building production definition - shared between client and API
+ * Only contains production-related data needed for offline calculations.
+ * Display info (name, description, etc.) lives in the client.
  */
-export interface BuildingDefinition {
+export interface BuildingProductionDefinition {
   /** Unique identifier */
   id: string;
-  /** Display name */
-  name: string;
-  /** Plural display name */
-  namePlural: string;
-  /** Description */
-  description: string;
   /** Production configuration */
   production: ProductionConfig;
 }
 
 /**
- * All building definitions - SINGLE SOURCE OF TRUTH
+ * All building production definitions - SINGLE SOURCE OF TRUTH
  */
-export const buildingDefinitions: BuildingDefinition[] = [
+export const buildingProductionDefinitions: BuildingProductionDefinition[] = [
   {
     id: 'paddy_field',
-    name: 'Paddy Field',
-    namePlural: 'Paddy Fields',
-    description: 'A flooded rice paddy. The foundation of your farm.',
     production: {
       outputs: [{ resourceId: 'rice', baseAmount: 0.5 }],
       baseIntervalMs: 1000,
@@ -70,9 +63,6 @@ export const buildingDefinitions: BuildingDefinition[] = [
   },
   {
     id: 'family_worker',
-    name: 'Family Member',
-    namePlural: 'Family Members',
-    description: 'A family member helping with the harvest.',
     production: {
       outputs: [{ resourceId: 'rice', baseAmount: 1.0 }],
       baseIntervalMs: 1000,
@@ -82,9 +72,6 @@ export const buildingDefinitions: BuildingDefinition[] = [
   },
   {
     id: 'buffalo',
-    name: 'Water Buffalo',
-    namePlural: 'Water Buffalo',
-    description: 'Strong and steady. Plows fields without rest.',
     production: {
       outputs: [{ resourceId: 'rice', baseAmount: 5.0 }],
       baseIntervalMs: 1000,
@@ -94,9 +81,6 @@ export const buildingDefinitions: BuildingDefinition[] = [
   },
   {
     id: 'rice_mill',
-    name: 'Rice Mill',
-    namePlural: 'Rice Mills',
-    description: 'Processes raw rice into valuable flour.',
     production: {
       outputs: [{ resourceId: 'rice_flour', baseAmount: 1.0 }],
       inputs: [{ resourceId: 'rice', amount: 2 }],
@@ -107,9 +91,6 @@ export const buildingDefinitions: BuildingDefinition[] = [
   },
   {
     id: 'sampan',
-    name: 'Sampan',
-    namePlural: 'Sampans',
-    description: 'Traditional flat-bottomed boat for river transport.',
     production: {
       outputs: [],
       baseIntervalMs: 0,
@@ -119,9 +100,6 @@ export const buildingDefinitions: BuildingDefinition[] = [
   },
   {
     id: 'motorboat',
-    name: 'Motorboat',
-    namePlural: 'Motorboats',
-    description: 'Faster transport with larger cargo capacity.',
     production: {
       outputs: [],
       baseIntervalMs: 0,
@@ -131,9 +109,6 @@ export const buildingDefinitions: BuildingDefinition[] = [
   },
   {
     id: 'harvest_drone',
-    name: 'Harvest Drone',
-    namePlural: 'Harvest Drones',
-    description: 'Autonomous aerial harvesters. The future is now.',
     production: {
       outputs: [{ resourceId: 'rice', baseAmount: 1000 }],
       baseIntervalMs: 1000,
@@ -144,25 +119,33 @@ export const buildingDefinitions: BuildingDefinition[] = [
 ];
 
 /**
- * Map of building ID to definition for quick lookup
+ * Map of building ID to production definition for quick lookup
  */
-export const buildingDefinitionMap: Record<string, BuildingDefinition> =
-  buildingDefinitions.reduce(
+export const buildingProductionMap: Record<string, BuildingProductionDefinition> =
+  buildingProductionDefinitions.reduce(
     (acc, def) => {
       acc[def.id] = def;
       return acc;
     },
-    {} as Record<string, BuildingDefinition>
+    {} as Record<string, BuildingProductionDefinition>
   );
 
 /**
- * Get production rate per second for offline calculations
+ * Get production rate per second for offline calculations.
+ * Returns empty array for buildings that require inputs (converters)
+ * since we can't verify resource availability offline.
  */
 export function getBuildingProductionPerSecond(
   buildingId: string
 ): { resourceId: string; amountPerSecond: number }[] {
-  const def = buildingDefinitionMap[buildingId];
+  const def = buildingProductionMap[buildingId];
   if (!def || def.production.outputs.length === 0) {
+    return [];
+  }
+
+  // Skip buildings that require inputs - we can't consume resources offline
+  // without knowing if the player has enough
+  if (def.production.inputs && def.production.inputs.length > 0) {
     return [];
   }
 

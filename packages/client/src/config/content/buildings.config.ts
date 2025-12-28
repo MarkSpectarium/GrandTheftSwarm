@@ -10,15 +10,15 @@
  */
 
 import type { BuildingConfig } from "../types";
-import { buildingDefinitionMap } from 'shared';
+import { buildingProductionMap } from 'shared';
 
 /**
  * Helper to get production config from shared definition
  */
 function getSharedProduction(buildingId: string) {
-  const def = buildingDefinitionMap[buildingId];
+  const def = buildingProductionMap[buildingId];
   if (!def) {
-    throw new Error(`Building definition not found in shared: ${buildingId}`);
+    throw new Error(`Building production not found in shared: ${buildingId}`);
   }
   return def.production;
 }
