@@ -148,6 +148,21 @@ export const buildingProductionDefinitions: BuildingProductionDefinition[] = [
       idleEfficiency: 1.0,
     },
   },
+
+  // ---------------------------------------------------------------------------
+  // ERA 1: TRADING
+  // Dingies transport and sell rice for dong
+  // ---------------------------------------------------------------------------
+  {
+    id: 'dingy',
+    production: {
+      outputs: [{ resourceId: 'dong', baseAmount: 100 }], // Sells rice for 100 dong
+      inputs: [{ resourceId: 'rice', amount: 1000 }], // Consumes 1000 rice per trip
+      baseIntervalMs: 10000, // Every 10 seconds
+      requiresActive: false,
+      idleEfficiency: 0.5, // Less efficient when idle (slower without supervision)
+    },
+  },
 ];
 
 /**

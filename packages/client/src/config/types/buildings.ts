@@ -63,6 +63,15 @@ export interface BuildingConfig {
   /** Base cost to purchase first one */
   baseCost: ResourceAmount[];
 
+  /**
+   * Cost for subsequent purchases (after the first one).
+   * If provided, baseCost is used only for the first purchase,
+   * and subsequentCost is used for all following purchases.
+   * Useful for buildings where first purchase costs one currency
+   * and subsequent purchases cost a different currency.
+   */
+  subsequentCost?: ResourceAmount[];
+
   /** Cost scaling curve (typically exponential) */
   costCurve: CurveRef;
 
