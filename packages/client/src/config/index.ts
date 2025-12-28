@@ -21,6 +21,7 @@ import prestigeConfig from "./balance/prestige.config";
 // Content configs
 import resourcesConfig from "./content/resources.config";
 import buildingsConfig from "./content/buildings.config";
+import upgradesConfig from "./content/upgrades.config";
 
 // =============================================================================
 // MASTER CONFIGURATION
@@ -235,9 +236,9 @@ export const gameConfig: GameConfig = {
   buildings: buildingsConfig.buildings,
   buildingTiers: buildingsConfig.buildingTiers,
 
-  // Not yet implemented
-  upgrades: [],
-  upgradePaths: [],
+  // Upgrades
+  upgrades: upgradesConfig.upgrades,
+  upgradePaths: upgradesConfig.upgradePaths,
   repeatableUpgrades: [],
   events: [],
   seasonalEvents: [],
@@ -349,6 +350,7 @@ export { formattingConfig } from "./balance/formatting.config";
 export { default as prestigeConfig } from "./balance/prestige.config";
 export { default as resourcesConfig } from "./content/resources.config";
 export { default as buildingsConfig } from "./content/buildings.config";
+export { default as upgradesConfig } from "./content/upgrades.config";
 
 // Export dev mode presets for accelerated testing
 export {
