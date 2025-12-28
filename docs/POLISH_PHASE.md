@@ -114,23 +114,29 @@ This document tracks known areas that need attention before production release.
 
 **Implemented:**
 - GameLoop - Core loop with tick processing
-- ResourceSystem - Production calculations
-- BuildingSystem - Purchase and production logic
-- MultiplierSystem - Bonus calculations
+- ResourceSystem - Production calculations with consumption
+- BuildingSystem - Purchase and production logic with batch mode
+- MultiplierSystem - Bonus calculations with stacks
 - CurveEvaluator - Formula evaluation
 - SaveSystem - Local storage persistence
+- UpgradeSystem - Upgrade purchases and multiplier effects
+- EventBus - Game events for batch completions
+
+**Era 1 Content (Complete):**
+- Rice production chain (paddies, workers, buffalo)
+- Water supply chain (wells, carriers, canals)
+- Dingy trading system with 7 upgrades
+- Farm visualization with animations
 
 **Missing:**
-- **UpgradeSystem** - Upgrade application (config arrays empty)
 - **EventSystem** - Random events (Monsoon Blessing, etc.)
 - **PrestigeSystem** - Era transitions and resets
 
 **Recommended Fix:**
-- Implement UpgradeSystem in `packages/client/src/systems/`
 - Add EventSystem for random/timed events
 - Complete PrestigeSystem for era progression
 
-**Priority:** High (required for full gameplay)
+**Priority:** Medium (Era 1 gameplay complete, needed for Era 2+)
 
 ---
 
@@ -200,8 +206,9 @@ This document tracks known areas that need attention before production release.
 ## Implementation Order
 
 1. **Critical (before launch):**
-   - #6 Missing Game Systems
    - #7 Cloud Save Integration
+   - EventSystem implementation
+   - PrestigeSystem for Era 2 transition
 
 2. **High Priority (before public release):**
    - #3 JWT Token Security
@@ -215,3 +222,17 @@ This document tracks known areas that need attention before production release.
 
 4. **Low Priority:**
    - #2 Email Fallback
+
+---
+
+## Era 1 Completion Status ✅
+
+Era 1 core gameplay is complete:
+- [x] Rice production with workers and buffalo
+- [x] Water economy (buffalo consume water)
+- [x] Trading system (dingy sells rice for dong)
+- [x] Upgrade paths for trading improvements
+- [x] Animated farm visualization
+- [x] Batch production for discrete trading trips
+- [ ] Random events (Monsoon Blessing, etc.)
+- [ ] Era 2 transition requirements
