@@ -146,7 +146,8 @@ export type SinkType =
   | "conversion"   // Converted to other resources
   | "decay"        // Passive loss over time
   | "trade"        // Spent in trades
-  | "upkeep";      // Ongoing maintenance costs
+  | "upkeep"       // Ongoing maintenance costs
+  | "consumption"; // Consumed by buildings to survive (e.g., buffalo drinking water)
 
 // =============================================================================
 // RESOURCE CONVERSION

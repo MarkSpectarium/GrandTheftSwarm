@@ -187,6 +187,39 @@ export class StateManager {
   }
 
   /**
+   * Update building health (for consumption system)
+   */
+  updateBuildingHealth(buildingId: string, health: number): void {
+    const building = this.state.buildings[buildingId];
+    if (!building) {
+      console.warn(`StateManager: Unknown building "${buildingId}"`);
+      return;
+    }
+
+    building.health = Math.max(0, health);
+    this.notifySubscribers();
+  }
+
+  /**
+   * Remove buildings (for when they die from consumption)
+   */
+  removeBuilding(buildingId: string, count: number = 1): void {
+    const building = this.state.buildings[buildingId];
+    if (!building || building.owned === 0) return;
+
+    const removed = Math.min(count, building.owned);
+    building.owned -= removed;
+
+    EventBus.emit("building:removed", {
+      buildingId,
+      count: removed,
+      remaining: building.owned,
+    });
+
+    this.notifySubscribers();
+  }
+
+  /**
    * Unlock a resource
    */
   unlockResource(resourceId: string): void {

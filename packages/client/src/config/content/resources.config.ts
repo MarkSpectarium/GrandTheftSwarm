@@ -167,29 +167,31 @@ export const resources: ResourceConfig[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // ERA 2: FUEL RESOURCES
+  // ERA 1: CONSUMABLE RESOURCES
   // ---------------------------------------------------------------------------
 
   {
-    id: "river_water",
-    name: "River Water",
-    namePlural: "River Water",
-    description: "Used for irrigation and processing. Replenishes over time.",
+    id: "water",
+    name: "Water",
+    namePlural: "Water",
+    description: "Essential for livestock and irrigation. Store carefully - it's limited!",
     category: "fuel",
     icon: "water",
     color: "#4169E1", // Royal blue
     unlockedAtEra: 1,
-    initialAmount: 100,
-    maxCapacity: 500,
+    initialAmount: 50,
+    maxCapacity: 100, // Base storage, expandable with Era 2+ storage buildings
     persistsOnPrestige: false,
-    visibleBeforeUnlock: false,
+    visibleBeforeUnlock: true,
     displayDecimals: 0,
+    formatting: {
+      suffix: "L",
+    },
     acquisitionMethods: [
-      { type: "idle", description: "Naturally replenishes from the river" },
-      { type: "building", description: "Wells and pumps increase capacity" },
+      { type: "building", description: "Produced by wells and water carriers" },
     ],
     sinkMethods: [
-      { type: "fuel", description: "Consumed by production buildings" },
+      { type: "consumption", description: "Consumed by water buffalo" },
     ],
   },
 ];
@@ -219,7 +221,7 @@ export const conversions: ResourceConversionConfig[] = [
     name: "Make Noodles",
     inputs: [
       { resourceId: "rice_flour", amount: 5 },
-      { resourceId: "river_water", amount: 2 },
+      { resourceId: "water", amount: 2 },
     ],
     outputs: [
       { resourceId: "rice_noodles", amount: 3 },

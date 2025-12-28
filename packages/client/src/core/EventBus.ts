@@ -26,6 +26,15 @@ export type GameEventType =
   | "building:production"
   | "building:unlocked"
   | "building:maxed"
+  | "building:removed"
+  | "building:health:changed"
+  | "building:health:regen"
+  | "building:died"
+  | "building:disabled"
+
+  // Consumption events
+  | "consumption:shortage"
+  | "consumption:processed"
 
   // Upgrade events
   | "upgrade:purchased"
@@ -90,6 +99,14 @@ export interface GameEventPayload {
   "building:production": { buildingId: string; outputs: Record<string, number> };
   "building:unlocked": { buildingId: string };
   "building:maxed": { buildingId: string };
+  "building:removed": { buildingId: string; count: number; remaining: number };
+  "building:health:changed": { buildingId: string; oldHealth: number; newHealth: number; damage: number; maxHealth: number };
+  "building:health:regen": { buildingId: string; oldHealth: number; newHealth: number; healed: number; maxHealth: number };
+  "building:died": { buildingId: string; buildingName: string; remaining: number; cause: string };
+  "building:disabled": { buildingId: string; reason: string };
+
+  "consumption:shortage": { buildingId: string; resourceId: string; required: number; available: number; missing: number };
+  "consumption:processed": { buildingId: string; resourceId: string; required: number; consumed: number; missing: number };
 
   "upgrade:purchased": { upgradeId: string };
   "upgrade:unlocked": { upgradeId: string };

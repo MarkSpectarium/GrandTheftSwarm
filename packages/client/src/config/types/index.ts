@@ -69,6 +69,8 @@ export type {
   SpecialEffectParams,
   BuildingTierConfig,
   BuildingTier,
+  ConsumptionConfig,
+  ConsumptionResource,
 } from "./buildings";
 
 // Upgrades

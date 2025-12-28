@@ -116,6 +116,37 @@ export const buildingProductionDefinitions: BuildingProductionDefinition[] = [
       idleEfficiency: 1.0,
     },
   },
+
+  // ---------------------------------------------------------------------------
+  // ERA 1: WATER SUPPLIERS
+  // ---------------------------------------------------------------------------
+  {
+    id: 'village_well',
+    production: {
+      outputs: [{ resourceId: 'water', baseAmount: 1 }],
+      baseIntervalMs: 1000,
+      requiresActive: false,
+      idleEfficiency: 1.0,
+    },
+  },
+  {
+    id: 'water_carrier',
+    production: {
+      outputs: [{ resourceId: 'water', baseAmount: 3 }],
+      baseIntervalMs: 1000,
+      requiresActive: false,
+      idleEfficiency: 0.5, // Less efficient when idle (they rest!)
+    },
+  },
+  {
+    id: 'irrigation_canal',
+    production: {
+      outputs: [{ resourceId: 'water', baseAmount: 8 }],
+      baseIntervalMs: 1000,
+      requiresActive: false,
+      idleEfficiency: 1.0,
+    },
+  },
 ];
 
 /**

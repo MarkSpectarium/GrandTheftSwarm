@@ -16,6 +16,7 @@ import { StateManager } from "./state/StateManager";
 
 import { ResourceSystem } from "./systems/ResourceSystem";
 import { BuildingSystem } from "./systems/BuildingSystem";
+import { ConsumptionSystem } from "./systems/ConsumptionSystem";
 import { UpgradeSystem } from "./systems/UpgradeSystem";
 import { SaveSystem } from "./systems/SaveSystem";
 
@@ -33,6 +34,7 @@ export class Game {
   public readonly stateManager: StateManager;
   public readonly resourceSystem: ResourceSystem;
   public readonly buildingSystem: BuildingSystem;
+  public readonly consumptionSystem: ConsumptionSystem;
   public readonly upgradeSystem: UpgradeSystem;
   private saveSystem: SaveSystem;
 
@@ -68,6 +70,12 @@ export class Game {
       this.stateManager,
       this.resourceSystem,
       this.multiplierSystem
+    );
+
+    this.consumptionSystem = new ConsumptionSystem(
+      this.config,
+      this.stateManager,
+      this.resourceSystem
     );
 
     this.upgradeSystem = new UpgradeSystem(
@@ -177,6 +185,7 @@ export class Game {
 
     // Dispose all systems
     this.buildingSystem.dispose();
+    this.consumptionSystem.dispose();
     this.upgradeSystem.dispose();
     this.saveSystem.dispose();
 
@@ -295,6 +304,9 @@ export class Game {
 
       // Process building production
       this.buildingSystem.processTick(deltaMs);
+
+      // Process consumption (must be after production so resources can be used)
+      this.consumptionSystem.processTick(deltaMs);
 
       // Process expired multipliers
       this.multiplierSystem.processExpiredMultipliers(Date.now());
