@@ -5,12 +5,14 @@ import { BuildingPanel } from './BuildingPanel';
 import { UpgradePanel } from './UpgradePanel';
 import { StatsPanel } from './StatsPanel';
 import { AuthButton } from './AuthButton';
+import { FarmVisualization } from './FarmVisualization';
 
 export function GameContainer() {
   return (
     <div className="game-container">
       <AuthButton />
       <GameHeader />
+      <FarmVisualization />
       <main className="game-main">
         <ResourcePanel />
         <HarvestButton />
