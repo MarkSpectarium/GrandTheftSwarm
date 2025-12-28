@@ -100,26 +100,32 @@ authRouter.get('/github/callback', async (req: Request, res: Response) => {
 
     // Upsert user in database
     const userId = String(githubUser.id);
-    const existingUser = await db.query.users.findFirst({
-      where: eq(schema.users.id, userId),
-    });
+    try {
+      const existingUser = await db.query.users.findFirst({
+        where: eq(schema.users.id, userId),
+      });
 
-    if (existingUser) {
-      // Update existing user
-      await db.update(schema.users)
-        .set({
+      if (existingUser) {
+        // Update existing user
+        await db.update(schema.users)
+          .set({
+            githubUsername: githubUser.login,
+            email: primaryEmail,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.users.id, userId));
+      } else {
+        // Create new user
+        await db.insert(schema.users).values({
+          id: userId,
           githubUsername: githubUser.login,
           email: primaryEmail,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.users.id, userId));
-    } else {
-      // Create new user
-      await db.insert(schema.users).values({
-        id: userId,
-        githubUsername: githubUser.login,
-        email: primaryEmail,
-      });
+        });
+      }
+    } catch (dbError) {
+      console.error('Database error during user upsert:', dbError);
+      const dbErrorMessage = dbError instanceof Error ? dbError.message : 'unknown database error';
+      return res.redirect(`${CLIENT_URL}?error=oauth_failed&reason=database&message=${encodeURIComponent(dbErrorMessage)}`);
     }
 
     // Create JWT token
