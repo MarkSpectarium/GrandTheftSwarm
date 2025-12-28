@@ -38,6 +38,7 @@ export function FarmVisualization() {
     const canalCount = getBuildingCount(buildings, 'irrigation_canal');
     const millCount = getBuildingCount(buildings, 'rice_mill');
     const sampanCount = getBuildingCount(buildings, 'sampan');
+    const dingyCount = getBuildingCount(buildings, 'dingy');
 
     // Calculate visual density (how "full" the farm looks)
     const totalBuildings = paddyCount + wellCount + canalCount + millCount;
@@ -58,12 +59,14 @@ export function FarmVisualization() {
       canalCount: Math.min(canalCount, 2),
       millCount: Math.min(millCount, 2),
       sampanCount: Math.min(sampanCount, 3),
+      dingyCount,
       density,
       tier,
       era: currentEra,
       hasCanal: isBuildingUnlocked(buildings, 'irrigation_canal') && canalCount > 0,
       hasMill: millCount > 0,
       hasBoats: sampanCount > 0,
+      hasDingy: dingyCount > 0,
     };
   }, [buildings, currentEra]);
 
@@ -166,6 +169,18 @@ export function FarmVisualization() {
             🚣
           </span>
         ))}
+        {/* Dingy Trading Boat */}
+        {farmState.hasDingy && (
+          <div className="dingy-container">
+            <span className="dingy">🚣</span>
+            <span className="dingy-rice rice-1">🌾</span>
+            <span className="dingy-rice rice-2">🌾</span>
+            <span className="dingy-rice rice-3">🌾</span>
+            <span className="dingy-dong dong-1">💰</span>
+            <span className="dingy-dong dong-2">💰</span>
+            <span className="dingy-dong dong-3">💰</span>
+          </div>
+        )}
       </div>
 
       {/* Progress Indicator */}

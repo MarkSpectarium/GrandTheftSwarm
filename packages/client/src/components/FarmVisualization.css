@@ -421,6 +421,145 @@
 }
 
 /* =============================================================================
+   Dingy Trading Animation
+   ============================================================================= */
+
+.dingy-container {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 40px;
+  height: 32px;
+  animation: dingy-journey 10s ease-in-out infinite;
+}
+
+.dingy {
+  position: absolute;
+  font-size: 26px;
+  width: 40px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scaleX(-1); /* Face right */
+}
+
+/* Rice emojis flying into the boat */
+.dingy-rice {
+  position: absolute;
+  font-size: 16px;
+  opacity: 0;
+  top: -10px;
+  left: 20px;
+}
+
+.dingy-rice.rice-1 {
+  animation: rice-fly-in 10s ease-out infinite;
+  animation-delay: 0s;
+}
+
+.dingy-rice.rice-2 {
+  animation: rice-fly-in 10s ease-out infinite;
+  animation-delay: 0.3s;
+  left: 25px;
+}
+
+.dingy-rice.rice-3 {
+  animation: rice-fly-in 10s ease-out infinite;
+  animation-delay: 0.6s;
+  left: 15px;
+}
+
+/* Dong emojis flying out of the boat */
+.dingy-dong {
+  position: absolute;
+  font-size: 14px;
+  opacity: 0;
+  bottom: 0;
+  left: 20px;
+}
+
+.dingy-dong.dong-1 {
+  animation: dong-fly-out 10s ease-out infinite;
+  animation-delay: 0s;
+}
+
+.dingy-dong.dong-2 {
+  animation: dong-fly-out 10s ease-out infinite;
+  animation-delay: 0.25s;
+  left: 25px;
+}
+
+.dingy-dong.dong-3 {
+  animation: dong-fly-out 10s ease-out infinite;
+  animation-delay: 0.5s;
+  left: 15px;
+}
+
+/* Dingy journey: enter from left, pause in middle, exit right */
+@keyframes dingy-journey {
+  0% {
+    left: -50px;
+    transform: translateY(0);
+  }
+  /* Arrive at center */
+  30% {
+    left: calc(50% - 20px);
+    transform: translateY(-2px);
+  }
+  /* Stay in center during trading */
+  70% {
+    left: calc(50% - 20px);
+    transform: translateY(2px);
+  }
+  /* Exit to right */
+  100% {
+    left: calc(100% + 10px);
+    transform: translateY(0);
+  }
+}
+
+/* Rice flies down into the boat */
+@keyframes rice-fly-in {
+  0%, 25% {
+    opacity: 0;
+    transform: translateY(-30px) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-20px) rotate(-10deg);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(5px) rotate(10deg);
+  }
+  50%, 100% {
+    opacity: 0;
+    transform: translateY(10px) rotate(0deg);
+  }
+}
+
+/* Dong flies up and out of the boat */
+@keyframes dong-fly-out {
+  0%, 50% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-25px) scale(1.1);
+  }
+  75%, 100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.8);
+  }
+}
+
+/* =============================================================================
    Progress Indicator
    ============================================================================= */
 
