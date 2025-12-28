@@ -3,9 +3,25 @@
  *
  * Defines all purchasable buildings, their costs, production, and effects.
  * Modify values here to tune building balance.
+ *
+ * IMPORTANT: Production data (outputs, inputs, baseIntervalMs, idleEfficiency)
+ * is sourced from the shared package to ensure consistency with server-side
+ * offline calculations. Client-specific fields are added here.
  */
 
 import type { BuildingConfig } from "../types";
+import { buildingProductionMap } from 'shared';
+
+/**
+ * Helper to get production config from shared definition
+ */
+function getSharedProduction(buildingId: string) {
+  const def = buildingProductionMap[buildingId];
+  if (!def) {
+    throw new Error(`Building production not found in shared: ${buildingId}`);
+  }
+  return def.production;
+}
 
 // =============================================================================
 // ERA 1 BUILDINGS
@@ -37,19 +53,11 @@ export const buildings: BuildingConfig[] = [
     allowBulkPurchase: true,
     bulkOptions: [1, 10, 100],
 
-    // Production
+    // Production - core data from shared, with client-specific additions
     production: {
-      outputs: [
-        {
-          resourceId: "rice",
-          baseAmount: 0.5, // 0.5 rice per second per field
-        },
-      ],
-      baseIntervalMs: 1000,
+      ...getSharedProduction("paddy_field"),
       speedStackId: "paddy_speed",
       amountStackId: "paddy_production",
-      requiresActive: false,
-      idleEfficiency: 1.0, // Full production while idle
     },
 
     // No special effects for basic building
@@ -83,17 +91,9 @@ export const buildings: BuildingConfig[] = [
     bulkOptions: [1, 10],
 
     production: {
-      outputs: [
-        {
-          resourceId: "rice",
-          baseAmount: 1.0, // 1 rice per second
-        },
-      ],
-      baseIntervalMs: 1000,
+      ...getSharedProduction("family_worker"),
       speedStackId: "worker_speed",
       amountStackId: "worker_production",
-      requiresActive: false,
-      idleEfficiency: 0.8, // Slightly less productive when you're away
     },
 
     effects: [
@@ -136,16 +136,8 @@ export const buildings: BuildingConfig[] = [
     bulkOptions: [1, 10],
 
     production: {
-      outputs: [
-        {
-          resourceId: "rice",
-          baseAmount: 5.0, // 5 rice per second - strong early game
-        },
-      ],
-      baseIntervalMs: 1000,
+      ...getSharedProduction("buffalo"),
       amountStackId: "buffalo_production",
-      requiresActive: false,
-      idleEfficiency: 1.0, // Buffalo work regardless
     },
 
     specialEffects: [
@@ -188,19 +180,8 @@ export const buildings: BuildingConfig[] = [
     bulkOptions: [1, 10],
 
     production: {
-      outputs: [
-        {
-          resourceId: "rice_flour",
-          baseAmount: 1.0,
-        },
-      ],
-      inputs: [
-        { resourceId: "rice", amount: 2 }, // Consumes 2 rice per cycle
-      ],
-      baseIntervalMs: 2000, // Every 2 seconds
+      ...getSharedProduction("rice_mill"),
       amountStackId: "mill_production",
-      requiresActive: false,
-      idleEfficiency: 1.0,
     },
 
     resetsOnPrestige: true,
@@ -233,10 +214,7 @@ export const buildings: BuildingConfig[] = [
     bulkOptions: [1, 5],
 
     production: {
-      outputs: [], // Boats don't produce directly
-      baseIntervalMs: 0,
-      requiresActive: false,
-      idleEfficiency: 1.0,
+      ...getSharedProduction("sampan"),
     },
 
     effects: [
@@ -282,10 +260,7 @@ export const buildings: BuildingConfig[] = [
     bulkOptions: [1, 10],
 
     production: {
-      outputs: [],
-      baseIntervalMs: 0,
-      requiresActive: false,
-      idleEfficiency: 1.0,
+      ...getSharedProduction("motorboat"),
     },
 
     effects: [
@@ -327,17 +302,14 @@ export const buildings: BuildingConfig[] = [
     bulkOptions: [1, 10, 100],
 
     production: {
+      ...getSharedProduction("harvest_drone"),
       outputs: [
         {
-          resourceId: "rice",
-          baseAmount: 1000, // Massive production
+          ...getSharedProduction("harvest_drone").outputs[0],
           scalingCurve: "production_synergy",
         },
       ],
-      baseIntervalMs: 1000,
       amountStackId: "drone_production",
-      requiresActive: false,
-      idleEfficiency: 1.0,
     },
 
     effects: [

@@ -2,11 +2,18 @@
  * Building/Producer Type Definitions
  *
  * Buildings are purchasable entities that produce resources passively.
+ *
+ * Core production data is imported from 'shared' package to ensure
+ * consistency between client and API (for offline calculations).
  */
 
 import type { CurveRef } from "./curves";
 import type { MultiplierEffect } from "./multipliers";
 import type { ResourceAmount } from "./resources";
+import type {
+  ProductionOutput as SharedProductionOutput,
+  ProductionConfig as SharedProductionConfig,
+} from 'shared';
 
 // =============================================================================
 // BUILDING DEFINITION
@@ -110,41 +117,32 @@ export type BuildingCategory =
 // PRODUCTION CONFIG
 // =============================================================================
 
-export interface ProductionConfig {
+/**
+ * Client-side production output extends shared with optional client fields
+ */
+export interface ProductionOutput extends SharedProductionOutput {
+  /** How amount scales with building count (client-only) */
+  scalingCurve?: CurveRef;
+
+  /** Chance to produce (1.0 = always, 0.5 = 50% chance) (client-only) */
+  chance?: number;
+}
+
+/**
+ * Client-side production config extends shared with multiplier stack refs
+ */
+export interface ProductionConfig extends Omit<SharedProductionConfig, 'outputs' | 'inputs'> {
   /** Resources produced per production cycle */
   outputs: ProductionOutput[];
 
   /** Resources consumed per production cycle (optional) */
   inputs?: ResourceAmount[];
 
-  /** Base production interval (ms) */
-  baseIntervalMs: number;
-
-  /** Multiplier stack that affects production speed */
+  /** Multiplier stack that affects production speed (client-only) */
   speedStackId?: string;
 
-  /** Multiplier stack that affects production amount */
+  /** Multiplier stack that affects production amount (client-only) */
   amountStackId?: string;
-
-  /** Does production require active play? */
-  requiresActive: boolean;
-
-  /** Efficiency when idle (0-1, where 1 = full production) */
-  idleEfficiency: number;
-}
-
-export interface ProductionOutput {
-  /** Resource produced */
-  resourceId: string;
-
-  /** Base amount per building per cycle */
-  baseAmount: number;
-
-  /** How amount scales with building count */
-  scalingCurve?: CurveRef;
-
-  /** Chance to produce (1.0 = always, 0.5 = 50% chance) */
-  chance?: number;
 }
 
 // =============================================================================
