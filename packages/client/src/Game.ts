@@ -16,6 +16,7 @@ import { StateManager } from "./state/StateManager";
 
 import { ResourceSystem } from "./systems/ResourceSystem";
 import { BuildingSystem } from "./systems/BuildingSystem";
+import { UpgradeSystem } from "./systems/UpgradeSystem";
 import { SaveSystem } from "./systems/SaveSystem";
 
 import { gameConfig, type GameConfig } from "./config";
@@ -32,6 +33,7 @@ export class Game {
   public readonly stateManager: StateManager;
   public readonly resourceSystem: ResourceSystem;
   public readonly buildingSystem: BuildingSystem;
+  public readonly upgradeSystem: UpgradeSystem;
   private saveSystem: SaveSystem;
 
   private isInitialized: boolean = false;
@@ -62,6 +64,13 @@ export class Game {
     );
 
     this.buildingSystem = new BuildingSystem(
+      this.config,
+      this.stateManager,
+      this.resourceSystem,
+      this.multiplierSystem
+    );
+
+    this.upgradeSystem = new UpgradeSystem(
       this.config,
       this.stateManager,
       this.resourceSystem,
@@ -107,8 +116,9 @@ export class Game {
       }
     }
 
-    // Initial building unlock check
+    // Initial building and upgrade unlock check
     this.buildingSystem.checkUnlocks();
+    this.upgradeSystem.checkUnlocks();
 
     // Calculate initial production rates
     this.buildingSystem.recalculateAllProduction();
@@ -167,6 +177,7 @@ export class Game {
 
     // Dispose all systems
     this.buildingSystem.dispose();
+    this.upgradeSystem.dispose();
     this.saveSystem.dispose();
 
     // Dispose own subscriptions
@@ -197,7 +208,9 @@ export class Game {
     if (confirm("Are you sure you want to reset? All progress will be lost!")) {
       this.saveSystem.deleteSave();
       this.stateManager.reset();
+      this.upgradeSystem.resetForPrestige();
       this.buildingSystem.checkUnlocks();
+      this.upgradeSystem.checkUnlocks();
       this.buildingSystem.recalculateAllProduction();
     }
   }
@@ -216,6 +229,7 @@ export class Game {
     const success = this.saveSystem.importSave(data);
     if (success) {
       this.buildingSystem.checkUnlocks();
+      this.upgradeSystem.checkUnlocks();
       this.buildingSystem.recalculateAllProduction();
     }
     return success;
@@ -226,6 +240,18 @@ export class Game {
    */
   purchaseBuilding(buildingId: string, count: number = 1): boolean {
     return this.buildingSystem.purchase(buildingId, count);
+  }
+
+  /**
+   * Purchase an upgrade (exposed for UI)
+   */
+  purchaseUpgrade(upgradeId: string): boolean {
+    const success = this.upgradeSystem.purchase(upgradeId);
+    if (success) {
+      // Recalculate production after upgrade (multipliers may have changed)
+      this.buildingSystem.recalculateAllProduction();
+    }
+    return success;
   }
 
   /**

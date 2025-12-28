@@ -2,6 +2,7 @@ import { GameHeader } from './GameHeader';
 import { ResourcePanel } from './ResourcePanel';
 import { HarvestButton } from './HarvestButton';
 import { BuildingPanel } from './BuildingPanel';
+import { UpgradePanel } from './UpgradePanel';
 import { StatsPanel } from './StatsPanel';
 import { AuthButton } from './AuthButton';
 
@@ -14,6 +15,7 @@ export function GameContainer() {
         <ResourcePanel />
         <HarvestButton />
         <BuildingPanel />
+        <UpgradePanel />
       </main>
       <StatsPanel />
     </div>

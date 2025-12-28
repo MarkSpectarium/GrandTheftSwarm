@@ -19,6 +19,7 @@ interface GameContextValue {
   actions: {
     harvest: () => void;
     purchaseBuilding: (buildingId: string, count?: number) => boolean;
+    purchaseUpgrade: (upgradeId: string) => boolean;
     save: () => boolean;
     reset: () => void;
     exportSave: () => string;
@@ -79,6 +80,11 @@ export function GameProvider({ children }: GameProviderProps) {
     return game.purchaseBuilding(buildingId, count);
   }, [game]);
 
+  const purchaseUpgrade = useCallback((upgradeId: string): boolean => {
+    if (!game) return false;
+    return game.purchaseUpgrade(upgradeId);
+  }, [game]);
+
   const save = useCallback((): boolean => {
     if (!game) return false;
     return game.save();
@@ -102,11 +108,12 @@ export function GameProvider({ children }: GameProviderProps) {
   const actions = useMemo(() => ({
     harvest,
     purchaseBuilding,
+    purchaseUpgrade,
     save,
     reset,
     exportSave,
     importSave,
-  }), [harvest, purchaseBuilding, save, reset, exportSave, importSave]);
+  }), [harvest, purchaseBuilding, purchaseUpgrade, save, reset, exportSave, importSave]);
 
   const value = useMemo<GameContextValue | null>(() => {
     if (!game || !state) return null;

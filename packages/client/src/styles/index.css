@@ -284,6 +284,129 @@ body {
 }
 
 /* =============================================================================
+   Upgrade Panel
+   ============================================================================= */
+.upgrade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upgrade-item {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.upgrade-item.available {
+  border-color: var(--accent-color);
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.upgrade-item.cannot-afford {
+  opacity: 0.7;
+}
+
+.upgrade-item.locked {
+  opacity: 0.5;
+  filter: grayscale(50%);
+}
+
+.upgrade-item.purchased {
+  background: rgba(0, 128, 0, 0.1);
+  border-color: rgba(0, 128, 0, 0.3);
+}
+
+.upgrade-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.upgrade-icon {
+  font-size: 1.5rem;
+}
+
+.upgrade-name {
+  flex: 1;
+  font-weight: bold;
+}
+
+.upgrade-purchased-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: rgba(0, 128, 0, 0.2);
+  color: #228B22;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.upgrade-description {
+  font-size: 0.875rem;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.upgrade-flavor {
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.upgrade-cost {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.upgrade-buy-btn {
+  width: 100%;
+  padding: 8px;
+  font-size: 0.875rem;
+  font-weight: bold;
+  background: var(--accent-color);
+  color: var(--text-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upgrade-buy-btn:hover:not(:disabled) {
+  background: var(--secondary-color);
+  color: white;
+}
+
+.upgrade-buy-btn:disabled {
+  background: var(--button-disabled);
+  border-color: #aaa;
+  cursor: not-allowed;
+}
+
+.no-upgrades {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 16px;
+}
+
+.purchased-upgrades {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.2);
+}
+
+.purchased-upgrades h3 {
+  font-size: 0.875rem;
+  color: var(--secondary-color);
+  margin-bottom: 8px;
+}
+
+/* =============================================================================
    Stats Panel
    ============================================================================= */
 .stats-panel {

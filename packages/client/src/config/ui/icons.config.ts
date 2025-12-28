@@ -41,6 +41,38 @@ export const buildingIcons: Record<string, string> = {
 };
 
 /**
+ * Upgrade icons by upgrade ID
+ */
+export const upgradeIcons: Record<string, string> = {
+  // Click upgrades
+  calloused_hands: "✊",
+  bamboo_sickle: "🎋",
+  iron_sickle: "🔪",
+  masters_technique: "📜",
+
+  // Production upgrades
+  better_seeds: "🌱",
+  improved_irrigation: "💧",
+  fertile_soil: "🪴",
+
+  // Worker upgrades
+  family_training: "👨‍👩‍👧‍👦",
+  work_songs: "🎵",
+
+  // Buffalo upgrades
+  buffalo_training: "🐃",
+  premium_feed: "🌿",
+
+  // Global upgrades
+  early_mornings: "🌅",
+  efficient_planning: "📋",
+
+  // Cost reduction upgrades
+  bulk_materials: "📦",
+  local_connections: "🤝",
+};
+
+/**
  * Default icons for unknown entities
  */
 export const defaultIcons = {
@@ -65,14 +97,23 @@ export function getBuildingIcon(buildingId: string): string {
 }
 
 /**
+ * Get icon for an upgrade
+ */
+export function getUpgradeIcon(upgradeId: string): string {
+  return upgradeIcons[upgradeId] ?? defaultIcons.upgrade;
+}
+
+/**
  * Icon registry for centralized access
  */
 export const iconRegistry = {
   resources: resourceIcons,
   buildings: buildingIcons,
+  upgrades: upgradeIcons,
   defaults: defaultIcons,
   getResourceIcon,
   getBuildingIcon,
+  getUpgradeIcon,
 } as const;
 
 export default iconRegistry;
