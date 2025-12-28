@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useGame } from '../contexts/GameContext';
+import { formatNumber } from '../utils/NumberFormatter';
 
 interface FloatingTextProps {
   text: string;
@@ -27,11 +28,25 @@ function FloatingText({ text, x, y, onComplete }: FloatingTextProps) {
 }
 
 export function HarvestButton() {
-  const { actions } = useGame();
+  const { game, state, actions, config } = useGame();
   const [isHarvesting, setIsHarvesting] = useState(false);
-  const [floatingTexts, setFloatingTexts] = useState<Array<{ id: number; x: number; y: number }>>([]);
+  const [floatingTexts, setFloatingTexts] = useState<Array<{ id: number; x: number; y: number; amount: number }>>([]);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const nextIdRef = useRef(0);
+
+  // Get current click power from multiplier system
+  // Re-calculate when upgrades change (state.upgrades triggers re-render)
+  const clickPower = useMemo(() => {
+    const multiplierSystem = (game as unknown as {
+      multiplierSystem?: { getValue: (stackId: string) => number };
+    }).multiplierSystem;
+
+    if (!multiplierSystem) return config.gameplay.clickBaseAmount;
+
+    const clickMultiplier = multiplierSystem.getValue("click_power");
+    const allProdMultiplier = multiplierSystem.getValue("all_production");
+    return config.gameplay.clickBaseAmount * clickMultiplier * allProdMultiplier;
+  }, [game, config.gameplay.clickBaseAmount, state.upgrades]);
 
   const handleClick = useCallback(() => {
     actions.harvest();
@@ -40,7 +55,7 @@ export function HarvestButton() {
     setIsHarvesting(true);
     setTimeout(() => setIsHarvesting(false), 100);
 
-    // Show floating text
+    // Show floating text with actual amount
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const id = nextIdRef.current++;
@@ -48,9 +63,10 @@ export function HarvestButton() {
         id,
         x: rect.left + rect.width / 2,
         y: rect.top,
+        amount: clickPower,
       }]);
     }
-  }, [actions]);
+  }, [actions, clickPower]);
 
   const removeFloatingText = useCallback((id: number) => {
     setFloatingTexts(prev => prev.filter(ft => ft.id !== id));
@@ -65,13 +81,13 @@ export function HarvestButton() {
       >
         <span className="harvest-icon">🌾</span>
         <span className="harvest-text">Harvest Rice</span>
-        <span className="harvest-amount"></span>
+        <span className="harvest-amount">+{formatNumber(clickPower)} per click</span>
       </button>
 
       {floatingTexts.map(ft => (
         <FloatingText
           key={ft.id}
-          text="+1"
+          text={`+${formatNumber(ft.amount)}`}
           x={ft.x}
           y={ft.y}
           onComplete={() => removeFloatingText(ft.id)}
