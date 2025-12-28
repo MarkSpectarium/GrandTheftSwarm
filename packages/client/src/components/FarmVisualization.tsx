@@ -43,6 +43,13 @@ interface PaddyCellData {
   hasBuffalo: boolean;
 }
 
+// Interface for accessing multiplier system
+interface GameWithMultipliers {
+  multiplierSystem?: {
+    getValue: (stackId: string) => number;
+  };
+}
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -155,9 +162,16 @@ const Boat = memo(function Boat({ index }: { index: number }) {
 });
 
 /** Dingy trading boat with rice/dong animation */
-const Dingy = memo(function Dingy() {
+const Dingy = memo(function Dingy({ speedMultiplier }: { speedMultiplier: number }) {
   return (
-    <div className="dingy-container">
+    <div
+      className="dingy-container"
+      style={{
+        // Animation duration scales with speed multiplier (faster = shorter)
+        // Base is 10s, minimum 2s to keep animation visible
+        '--dingy-duration': `${Math.max(2, 10 / speedMultiplier)}s`,
+      } as React.CSSProperties}
+    >
       <span className="dingy">🚣</span>
       <span className="dingy-rice rice-1">🌾</span>
       <span className="dingy-rice rice-2">🌾</span>
@@ -186,10 +200,12 @@ const RiverLayer = memo(function RiverLayer({
   hasCanal,
   sampanCount,
   hasDingy,
+  dingySpeedMultiplier,
 }: {
   hasCanal: boolean;
   sampanCount: number;
   hasDingy: boolean;
+  dingySpeedMultiplier: number;
 }) {
   // Pre-generate boat indices to avoid recreating array each render
   const boatIndices = useMemo(() =>
@@ -201,7 +217,7 @@ const RiverLayer = memo(function RiverLayer({
     <div className={`farm-river ${hasCanal ? 'with-canal' : ''}`}>
       <WaterFlow />
       {boatIndices.map(i => <Boat key={i} index={i} />)}
-      {hasDingy && <Dingy />}
+      {hasDingy && <Dingy speedMultiplier={dingySpeedMultiplier} />}
     </div>
   );
 });
@@ -364,8 +380,14 @@ function computeFarmState(
 // =============================================================================
 
 export function FarmVisualization() {
-  const { state } = useGame();
+  const { state, game } = useGame();
   const { buildings, currentEra } = state;
+
+  // Get dingy speed multiplier for animation timing
+  const dingySpeedMultiplier = useMemo(() => {
+    const gameWithMult = game as unknown as GameWithMultipliers;
+    return gameWithMult.multiplierSystem?.getValue('dingy_speed') ?? 1;
+  }, [game, state]); // Re-check when state changes (upgrades purchased)
 
   // Debounced farm state to reduce re-renders
   const farmState = useDebouncedFarmState(buildings, currentEra);
@@ -399,6 +421,7 @@ export function FarmVisualization() {
         hasCanal={farmState.hasCanal}
         sampanCount={farmState.sampanCount}
         hasDingy={farmState.hasDingy}
+        dingySpeedMultiplier={dingySpeedMultiplier}
       />
       <ProgressBar density={farmState.density} />
     </div>

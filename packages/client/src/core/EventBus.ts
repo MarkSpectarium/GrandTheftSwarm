@@ -31,6 +31,7 @@ export type GameEventType =
   | "building:health:regen"
   | "building:died"
   | "building:disabled"
+  | "building:batch:complete"
 
   // Consumption events
   | "consumption:shortage"
@@ -104,6 +105,7 @@ export interface GameEventPayload {
   "building:health:regen": { buildingId: string; oldHealth: number; newHealth: number; healed: number; maxHealth: number };
   "building:died": { buildingId: string; buildingName: string; remaining: number; cause: string };
   "building:disabled": { buildingId: string; reason: string };
+  "building:batch:complete": { buildingId: string; buildingName: string };
 
   "consumption:shortage": { buildingId: string; resourceId: string; required: number; available: number; missing: number };
   "consumption:processed": { buildingId: string; resourceId: string; required: number; consumed: number; missing: number };
