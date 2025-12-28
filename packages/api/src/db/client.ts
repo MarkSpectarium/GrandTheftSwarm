@@ -1,12 +1,37 @@
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
+import { createClient, type Client } from '@libsql/client';
+import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
 import * as schema from './schema';
 
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL || 'file:local.db',
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
+// Lazy initialization to prevent crashes when env vars are missing
+let client: Client | null = null;
+let dbInstance: LibSQLDatabase<typeof schema> | null = null;
 
-export const db = drizzle(client, { schema });
+function getClient(): Client {
+  if (!client) {
+    const url = process.env.TURSO_DATABASE_URL;
+    if (!url) {
+      throw new Error('TURSO_DATABASE_URL environment variable is not set');
+    }
+    client = createClient({
+      url,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+  }
+  return client;
+}
+
+function getDb(): LibSQLDatabase<typeof schema> {
+  if (!dbInstance) {
+    dbInstance = drizzle(getClient(), { schema });
+  }
+  return dbInstance;
+}
+
+// Export a proxy that lazily initializes the database
+export const db = new Proxy({} as LibSQLDatabase<typeof schema>, {
+  get(_target, prop) {
+    return (getDb() as any)[prop];
+  },
+});
 
 export { schema };
