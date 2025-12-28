@@ -10,8 +10,19 @@ The Farm Visualization is a dynamic visual representation of the player's farm t
 
 ```
 FarmVisualization/
-├── FarmVisualization.tsx    # React component (182 lines)
-└── FarmVisualization.css    # Styles & animations (495 lines)
+├── FarmVisualization.tsx    # React component (~385 lines)
+│   ├── Types & Constants
+│   ├── Memoized Sub-Components (11 components)
+│   │   ├── SkyLayer, HorizonLayer (static)
+│   │   ├── Well, Carrier, Boat (instanced)
+│   │   ├── PaddyCell (instanced)
+│   │   ├── WaterFlow (static)
+│   │   ├── RiverLayer, InfrastructureLayer, PaddyGridLayer
+│   │   └── ProgressBar
+│   ├── useDebouncedFarmState hook
+│   └── Main FarmVisualization component
+└── FarmVisualization.css    # Styles & animations (~535 lines)
+    └── CSS Variables for all dimensions, colors, animations
 ```
 
 ### Visual Layers (Top to Bottom)
@@ -27,22 +38,40 @@ FarmVisualization/
 
 ### Grid Alignment Solution
 
-The core challenge with emoji-based visuals is **inconsistent emoji widths** across operating systems and fonts. Our solution:
+The core challenge with emoji-based visuals is **inconsistent emoji widths** across operating systems and fonts. Our solution uses CSS custom properties for all dimensions:
 
 ```css
+.farm-visualization {
+  /* All dimensions are CSS variables */
+  --farm-grid-columns: 4;
+  --farm-grid-rows: 3;
+  --farm-cell-width: 60px;
+  --farm-cell-height: 50px;
+}
+
 .paddy-grid {
   display: grid;
-  grid-template-columns: repeat(4, 60px);  /* FIXED widths */
-  grid-template-rows: repeat(3, 50px);
+  grid-template-columns: repeat(var(--farm-grid-columns), var(--farm-cell-width));
+  grid-template-rows: repeat(var(--farm-grid-rows), var(--farm-cell-height));
 }
 
 .paddy-cell {
-  width: 60px;
-  height: 50px;
+  width: var(--farm-cell-width);
+  height: var(--farm-cell-height);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;  /* Clip oversized emoji */
+}
+
+/* Responsive: just override variables */
+@media (max-width: 480px) {
+  .farm-visualization {
+    --farm-grid-columns: 3;
+    --farm-grid-rows: 4;
+    --farm-cell-width: 55px;
+    --farm-cell-height: 45px;
+  }
 }
 ```
 
@@ -217,15 +246,24 @@ Era-specific CSS classes modify the visualization:
 
 1. **Animation Count**: Currently ~15 simultaneous CSS animations. Should profile on lower-end devices.
 
-2. **Re-render Frequency**: Component re-renders on every game state change. Should consider:
-   - Debouncing updates
-   - Separating fast-changing elements (workers) from static (buildings)
+2. ~~**Re-render Frequency**~~: **RESOLVED** - Component now uses:
+   - 250ms debounced state updates via `useDebouncedFarmState` hook
+   - State change detection to skip unnecessary updates
+   - Memoized sub-components that only re-render when their specific props change
 
-3. **No Virtualization**: All elements rendered even if visually similar. Could use instancing for repeated elements.
+3. ~~**No Virtualization**~~: **RESOLVED** - Implemented component instancing:
+   - All repeated elements (wells, carriers, boats, paddy cells) are memoized components
+   - Static layers (sky, horizon, water flow) separated from dynamic content
+   - Pre-generated index arrays to avoid array recreation
 
 ### Code Quality
 
-1. **Magic Numbers**: Grid dimensions (60px, 50px) hardcoded in multiple places. Should be CSS variables.
+1. ~~**Magic Numbers**~~: **RESOLVED** - All dimensions now use CSS custom properties:
+   - Grid dimensions: `--farm-grid-columns`, `--farm-cell-width`, etc.
+   - Element sizes: `--farm-element-xs` through `--farm-element-xl`
+   - Font sizes: `--farm-font-xs` through `--farm-font-5xl`
+   - Spacing, colors, and animation durations all configurable
+   - Responsive breakpoints modify variables instead of duplicating styles
 
 2. **Emoji Hardcoded**: Emoji characters in TSX instead of using icon registry. Should import from `icons.config.ts`.
 
