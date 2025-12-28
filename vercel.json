@@ -13,7 +13,7 @@
     "api/index.ts": {
       "memory": 256,
       "maxDuration": 10,
-      "includeFiles": "packages/api/src/**/*"
+      "includeFiles": ["packages/api/src/**/*", "shared/**/*"]
     }
   }
 }
