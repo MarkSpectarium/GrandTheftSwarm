@@ -9,4 +9,9 @@ export { BuildingSystem } from "./BuildingSystem";
 export type { BuildingCost, BuildingInfo } from "./BuildingSystem";
 
 export { SaveSystem } from "./SaveSystem";
-export type { SaveData, SaveSystemConfig } from "./SaveSystem";
+export type {
+  LocalSaveData,
+  SaveSystemConfig,
+  ConflictResolution,
+  ConflictInfo,
+} from "./SaveSystem";
