@@ -1,5 +1,5 @@
 import type { SerializableGameState, BuildingState } from 'shared';
-import { buildingProductionConfigs } from 'shared';
+import { buildingDefinitionMap, getBuildingProductionPerSecond } from 'shared';
 
 // Default timing config (should match client)
 const DEFAULT_TIMING = {
@@ -45,24 +45,29 @@ export function calculateOfflineProgress(
       continue;
     }
 
-    // Look up building production config
-    const buildingConfig = buildingProductionConfigs[buildingId];
-    if (!buildingConfig || buildingConfig.outputs.length === 0) {
+    // Look up building definition from shared config
+    const buildingDef = buildingDefinitionMap[buildingId];
+    if (!buildingDef) {
+      continue;
+    }
+
+    // Get production rates (already converted to per-second)
+    const productionRates = getBuildingProductionPerSecond(buildingId);
+    if (productionRates.length === 0) {
       continue;
     }
 
     // Apply building's idle efficiency on top of global offline efficiency
-    const buildingEffectiveMs = effectiveMs * buildingConfig.idleEfficiency;
+    const idleEfficiency = buildingDef.production.idleEfficiency;
+    const buildingEffectiveSeconds = (effectiveMs / 1000) * idleEfficiency;
 
     // Calculate production for each output resource
-    for (const output of buildingConfig.outputs) {
-      // Production = baseAmount/sec * seconds * buildingCount
-      const totalProduction =
-        output.baseAmountPerSecond * (buildingEffectiveMs / 1000) * bs.owned;
+    for (const rate of productionRates) {
+      const totalProduction = rate.amountPerSecond * buildingEffectiveSeconds * bs.owned;
 
       if (totalProduction > 0) {
-        resourcesGained[output.resourceId] =
-          (resourcesGained[output.resourceId] || 0) + totalProduction;
+        resourcesGained[rate.resourceId] =
+          (resourcesGained[rate.resourceId] || 0) + totalProduction;
       }
     }
   }
