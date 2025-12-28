@@ -266,6 +266,41 @@ type CooldownConfig = {
 };
 ```
 
+### 4.4 Batch Production System
+
+Buildings can use batch production for discrete, trip-based mechanics (e.g., trading boats):
+
+```typescript
+type BatchProductionConfig = {
+  batchProduction: true;        // Enables discrete production mode
+  baseIntervalMs: number;       // Time per complete cycle
+  inputs: ResourceAmount[];     // Consumed per batch
+  outputs: ResourceAmount[];    // Produced per batch
+  speedStackId?: string;        // Multiplier stack for interval
+  amountStackId?: string;       // Multiplier stack for output
+};
+```
+
+**Behavior:**
+- Accumulates time until full interval completes
+- Checks if inputs are available before producing
+- Consumes all inputs and produces all outputs at once
+- Speed multipliers reduce the interval (faster trips)
+- Amount multipliers increase the output (more profit)
+- Emits `building:batch:complete` event on each cycle
+
+**Example: Dingy Trading**
+```typescript
+{
+  batchProduction: true,
+  baseIntervalMs: 10000,        // 10 seconds per trip
+  inputs: [{ resourceId: 'rice', amount: 1000 }],
+  outputs: [{ resourceId: 'dong', baseAmount: 100 }],
+  speedStackId: 'dingy_speed',
+  amountStackId: 'dingy_profit',
+}
+```
+
 ---
 
 ## 5. Random Event System
@@ -375,7 +410,68 @@ type EraGateConfig = {
 
 ---
 
-## 9. Config File Structure Overview
+## 9. Building Cost Systems
+
+### 9.1 Standard Cost Scaling
+
+Most buildings use exponential cost scaling:
+
+```typescript
+type StandardCost = {
+  baseCost: ResourceAmount[];
+  costCurve: CurveRef;  // e.g., "cost_standard" (1.15x per purchase)
+};
+```
+
+### 9.2 Currency-Switching Costs (SubsequentCost)
+
+Some buildings cost one currency initially but switch to another for subsequent purchases:
+
+```typescript
+type SwitchingCost = {
+  baseCost: ResourceAmount[];      // First purchase cost
+  subsequentCost: ResourceAmount[]; // All following purchases
+  costCurve: CurveRef;             // Applied to subsequentCost
+};
+```
+
+**Example: Dingy Trading Boat**
+```typescript
+{
+  baseCost: [{ resourceId: 'rice', amount: 1000 }],     // First: 1000 rice
+  subsequentCost: [{ resourceId: 'dong', amount: 1000 }], // Then: 1000 dong
+  costCurve: 'cost_dingy_5x',  // 5x scaling: 1000, 5000, 25000...
+}
+```
+
+### 9.3 Consumption System
+
+Buildings can consume resources each tick. If resources are insufficient, the building loses health:
+
+```typescript
+type ConsumptionConfig = {
+  resources: [{
+    resourceId: string;
+    amountPerTick: number;
+    healthLossPerMissing: number;
+  }];
+  maxHealth: number;
+  onDeath: 'remove' | 'disable';
+};
+```
+
+**Example: Buffalo**
+```typescript
+{
+  resources: [{ resourceId: 'water', amountPerTick: 3, healthLossPerMissing: 1 }],
+  maxHealth: 100,
+  onDeath: 'remove',  // Buffalo dies without water
+}
+```
+
+---
+
+## 10. Config File Structure Overview
 
 ```
 src/config/
@@ -407,9 +503,9 @@ src/config/
 
 ---
 
-## 10. Validation Requirements
+## 11. Validation Requirements
 
-### 10.1 Compile-Time Validation
+### 11.1 Compile-Time Validation
 
 TypeScript types must enforce:
 - All required fields present
@@ -417,7 +513,7 @@ TypeScript types must enforce:
 - Variable references are valid strings (runtime check needed)
 - Numeric values are within sensible ranges (custom type guards)
 
-### 10.2 Runtime Validation
+### 11.2 Runtime Validation
 
 The engine should validate on load:
 - All variable references resolve to actual game state
@@ -425,7 +521,7 @@ The engine should validate on load:
 - Prestige requirements are achievable
 - Era gates form a valid progression chain
 
-### 10.3 Balance Warnings
+### 11.3 Balance Warnings
 
 Development builds should warn when:
 - Cost curves grow faster than production curves (death spiral)

@@ -36,11 +36,22 @@ grand-theft-swarm/
 
 **Game Systems:**
 - GameLoop - Tick-based game loop
-- ResourceSystem - Production calculations
-- BuildingSystem - Purchase and production logic
-- MultiplierSystem - Bonus calculations
+- ResourceSystem - Production calculations with consumption
+- BuildingSystem - Purchase and production logic with batch mode
+- MultiplierSystem - Bonus calculations with stacks
 - CurveEvaluator - Formula evaluation
 - SaveSystem - LocalStorage persistence
+- UpgradeSystem - Upgrade purchases and multiplier effects
+- EventBus - Game event system for building completions
+
+**Era 1 Content (Fully Implemented):**
+- Rice production chain (paddies → workers → buffalo)
+- Water supply chain (wells → carriers → canals)
+- Buffalo consumption system (water-dependent production)
+- Dingy trading system (batch production: rice → dong)
+- 7 dingy upgrades (speed, profit, cargo capacity)
+- Animated farm visualization with dynamic boat trading
+- SubsequentCost system for currency-switching costs
 
 **API Endpoints:**
 - `GET /api/health` - Health check
@@ -55,32 +66,31 @@ grand-theft-swarm/
 ### Not Yet Implemented
 
 **Game Systems:**
-- UpgradeSystem - Upgrade purchases and effects
 - EventSystem - Random events (Monsoon Blessing, etc.)
 - PrestigeSystem - Era transitions and resets
 - Cloud save integration - Connect SaveSystem to API
 
 **UI Components:**
-- Upgrade panel
 - Event notifications
 - Settings panel
 - Offline progress modal
+- Era transition cinematics
 
 ---
 
 ## Phase 1: Complete Core Gameplay
 
-### 1.1 Implement UpgradeSystem
+### 1.1 UpgradeSystem ✅ COMPLETE
 
-Create `packages/client/src/systems/UpgradeSystem.ts`:
+Implemented in `packages/client/src/systems/UpgradeSystem.ts`:
 - Purchase upgrades with resource costs
-- Apply effects (multipliers, unlocks)
-- Track upgrade state
+- Apply multiplier effects via MultiplierSystem
+- Track upgrade state in game state
 
-Populate config arrays:
-- `upgrades` - One-time upgrades
-- `upgradePaths` - Tiered upgrade lines
-- `repeatableUpgrades` - Infinitely purchasable
+Config populated with:
+- 7 dingy upgrades (speed path: 3, profit path: 4)
+- Upgrade paths for organized progression
+- Multiplier stacks for dingy_speed and dingy_profit
 
 ### 1.2 Implement EventSystem
 
@@ -123,15 +133,20 @@ Extend `SaveSystem.ts`:
 
 ## Phase 3: UI Polish
 
-### 3.1 Remaining Components
+### 3.1 Completed Components
 
-- [ ] UpgradePanel
+- [x] UpgradePanel - Shows available upgrades with purchase UI
+- [x] FarmVisualization - Animated farm showing buildings and trading
+- [x] BuildingPanel - Purchase and display buildings
+
+### 3.2 Remaining Components
+
 - [ ] EventNotification
 - [ ] OfflineProgressModal
 - [ ] SettingsPanel
 - [ ] Era transition cinematics
 
-### 3.2 Era Theming
+### 3.3 Era Theming
 
 | Era | Theme | Visual Style |
 |-----|-------|--------------|

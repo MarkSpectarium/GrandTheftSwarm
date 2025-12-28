@@ -1,8 +1,8 @@
 # Grand Theft Swarm: Mekong Delta Farming Empire
 ## Game Design Document - Foundation
 
-> **Document Status**: Foundation
-> **Version**: 0.1.0
+> **Document Status**: Era 1 Complete
+> **Version**: 0.2.0
 > **Purpose**: Core structure for agent-driven expansion
 
 ---
@@ -136,8 +136,10 @@ A browser-based idle farming game where players build a rice empire in Vietnam's
 |-------------------|-------------------|----------------|
 | Cookie Click | Harvest Rice (manual) | Era 1 |
 | Buildings | Paddies → Workers → Buffalo → Mills | Era 1 |
+| Resource Chain | Water → Buffalo (consumption system) | Era 1 |
 | Golden Cookie | Monsoon Blessing / Lucky Catch | Era 1 |
-| Upgrades | Farming Techniques, Tools, Seeds | Era 1+ |
+| Upgrades | Farming Techniques, Tools, Trading | Era 1+ |
+| Trading Trips | Dingy boats sell rice for Dong (batch production) | Era 1 |
 | Prestige | Generational Reset (new generation takes over) | Era 2+ |
 | Heavenly Chips | Ancestral Wisdom (permanent multipliers) | Era 2+ |
 | Fleet Dispatch | Boat Convoys to Markets | Era 2 |
@@ -152,12 +154,13 @@ A browser-based idle farming game where players build a rice empire in Vietnam's
 | Generic Concept | Mekong Theme |
 |-----------------|--------------|
 | Cookies/Gold | Rice (đồng lúa) |
+| Currency | Dong (₫) - Vietnamese currency |
 | Premium Currency | Lotus Tokens |
 | Prestige Currency | Ancestral Wisdom |
-| Energy/Fuel | River Water / Diesel (later) |
+| Energy/Fuel | Water (Era 1) / River Water / Diesel (later) |
 | Workers | Family Members → Hired Hands → Drones |
-| Buildings | Paddies, Huts, Mills, Warehouses, Factories |
-| Transport | Sampans → Motorboats → Cargo Drones |
+| Buildings | Paddies, Wells, Mills, Warehouses, Factories |
+| Transport | Dingies → Sampans → Motorboats → Cargo Drones |
 
 ---
 
@@ -202,17 +205,42 @@ CLICK rice paddy → Gain rice → Buy upgrades → Click faster → Buy workers
 |----------|-------------|
 | **Manual Harvest** | Click paddy to harvest rice (1 rice/click base) |
 | **Family Workers** | First automation: family members harvest slowly |
-| **Seasonal Cycles** | Wet/dry seasons affect yield (simple multiplier) |
-| **Basic Upgrades** | Better seeds, hand tools, irrigation |
-| **Buffalo** | First "building" - slow but free automation |
-| **Village Market** | Sell rice for Dong (money) to buy upgrades |
+| **Buffalo** | Powerful rice producers that consume water |
+| **Water Supply Chain** | Wells → Water Carriers → Irrigation Canals supply water to buffalo |
+| **Basic Upgrades** | Better seeds, hand tools, water efficiency |
+| **Dingy Trading** | Small boats make trading trips to sell rice for Dong |
+| **Farm Visualization** | Animated visual showing farm growth, workers, and trading boats |
+
+#### Water Economy
+Buffalo are powerful producers but require water to survive. The water supply chain creates early-game resource management:
+
+| Building | Water/tick | Buffalo Supported |
+|----------|------------|-------------------|
+| Village Well | 9L | 3 |
+| Water Carrier | 27L | 9 |
+| Irrigation Canal | 72L | 24 |
+
+#### Trading System
+The dingy represents Era 1's trading mechanic - discrete batch production that converts rice to currency:
+
+| Stat | Base Value | Notes |
+|------|------------|-------|
+| Rice consumed | 1000 | Per trading trip |
+| Dong earned | 100 | Per trading trip |
+| Trip duration | 10s | Affected by speed upgrades |
+| First dingy cost | 1000 rice | Currency switches after first |
+| Subsequent costs | 1000 dong × 5^n | 5x exponential scaling |
+
+Upgrades improve dingy speed (+25% to +100%), profit (+25% to +100%), and cargo capacity (+50%).
 
 #### Content Scope
-- 1 paddy field (expandable to 3)
-- 5-8 upgrade types
-- 3 worker types (self, spouse, children)
-- 1 buffalo tier
-- Basic seasonal events (monsoon bonus = golden cookie equivalent)
+- 1 paddy field (expandable to 12 in visualization)
+- 10+ upgrade types (production, water, trading)
+- 3 worker types (family workers)
+- Buffalo with water consumption
+- Water supply buildings (well, carrier, canal)
+- Dingy trading boats with upgrades
+- Animated farm visualization
 
 #### Era 1 → Era 2 Transition
 **Trigger**: Accumulate 1,000,000 rice lifetime OR purchase "District Expansion Permit"
@@ -639,6 +667,7 @@ The balance system uses a **configuration-driven architecture**:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 0.1.0 | 2024-XX-XX | Foundation Agent | Initial structure, era system, user journey |
+| 0.2.0 | 2024-12-28 | Claude | Era 1 complete: water economy, dingy trading, farm visualization |
 
 ---
 
