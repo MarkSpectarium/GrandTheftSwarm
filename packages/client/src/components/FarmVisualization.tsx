@@ -4,24 +4,43 @@
  * A dynamic visual representation of the farm that grows as the player
  * purchases buildings, upgrades, and progresses through eras.
  *
- * Uses a hybrid approach:
- * - CSS gradients/shapes for terrain (sky, water, land)
- * - Emojis in fixed-size grid cells for buildings/entities
- * - CSS animations for movement and life
+ * Performance optimizations:
+ * - Debounced state updates to prevent excessive re-renders
+ * - Memoized sub-components for instanced elements
+ * - Separated static layers from dynamic layers
  */
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect, useState, memo } from 'react';
 import { useGame } from '../contexts/GameContext';
 import './FarmVisualization.css';
 
-// Helper to get count of a building, defaulting to 0
-function getBuildingCount(buildings: Record<string, { owned?: number }>, id: string): number {
-  return buildings[id]?.owned ?? 0;
+// =============================================================================
+// Types
+// =============================================================================
+
+interface FarmState {
+  paddyCount: number;
+  workerCount: number;
+  buffaloCount: number;
+  wellCount: number;
+  carrierCount: number;
+  canalCount: number;
+  millCount: number;
+  sampanCount: number;
+  dingyCount: number;
+  density: number;
+  tier: number;
+  era: number;
+  hasCanal: boolean;
+  hasMill: boolean;
+  hasBoats: boolean;
+  hasDingy: boolean;
 }
 
-// Helper to check if a building is unlocked
-function isBuildingUnlocked(buildings: Record<string, { unlocked?: boolean }>, id: string): boolean {
-  return buildings[id]?.unlocked ?? false;
+interface PaddyCellData {
+  hasRice: boolean;
+  hasWorker: boolean;
+  hasBuffalo: boolean;
 }
 
 // Interface for accessing multiplier system
@@ -30,6 +49,335 @@ interface GameWithMultipliers {
     getValue: (stackId: string) => number;
   };
 }
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const GRID_SIZE = 12;
+const UPDATE_DEBOUNCE_MS = 250;
+
+// Display caps to prevent visual overload
+const DISPLAY_CAPS = {
+  paddy: 12,
+  worker: 6,
+  buffalo: 4,
+  well: 2,
+  carrier: 3,
+  canal: 2,
+  mill: 2,
+  sampan: 3,
+} as const;
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+function getBuildingCount(buildings: Record<string, { owned?: number }>, id: string): number {
+  return buildings[id]?.owned ?? 0;
+}
+
+function isBuildingUnlocked(buildings: Record<string, { unlocked?: boolean }>, id: string): boolean {
+  return buildings[id]?.unlocked ?? false;
+}
+
+// =============================================================================
+// Memoized Sub-Components (Instancing)
+// =============================================================================
+
+/** Static sky layer - never re-renders after mount */
+const SkyLayer = memo(function SkyLayer({ showBird }: { showBird: boolean }) {
+  return (
+    <div className="farm-sky">
+      <span className="sky-element sun">☀️</span>
+      <span className="sky-element cloud cloud-1">☁️</span>
+      <span className="sky-element cloud cloud-2">☁️</span>
+      {showBird && <span className="sky-element bird">🐦</span>}
+    </div>
+  );
+});
+
+/** Static horizon layer */
+const HorizonLayer = memo(function HorizonLayer({ hasMill }: { hasMill: boolean }) {
+  return (
+    <div className="farm-horizon">
+      <span className="horizon-element tree tree-1">🌳</span>
+      <span className="horizon-element home">🏠</span>
+      <span className="horizon-element tree tree-2">🌴</span>
+      {hasMill && <span className="horizon-element mill">🏭</span>}
+    </div>
+  );
+});
+
+/** Instanced well component */
+const Well = memo(function Well() {
+  return (
+    <span className="infra-element well">
+      <span className="well-icon">⛲</span>
+    </span>
+  );
+});
+
+/** Instanced carrier component */
+const Carrier = memo(function Carrier({ index }: { index: number }) {
+  return (
+    <span className={`infra-element carrier carrier-${index}`}>🚶</span>
+  );
+});
+
+/** Instanced paddy cell component */
+const PaddyCell = memo(function PaddyCell({
+  hasRice,
+  hasWorker,
+  hasBuffalo
+}: PaddyCellData) {
+  if (!hasRice) {
+    return (
+      <div className="paddy-cell empty">
+        <span className="empty-plot">◻️</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="paddy-cell active">
+      <span className="rice-plant r1">🌾</span>
+      <span className="rice-plant r2">🌾</span>
+      {hasWorker && <span className="worker">👨‍🌾</span>}
+      {hasBuffalo && !hasWorker && <span className="buffalo">🐃</span>}
+    </div>
+  );
+});
+
+/** Instanced boat component */
+const Boat = memo(function Boat({ index }: { index: number }) {
+  return (
+    <span
+      className={`boat boat-${index}`}
+      style={{ animationDelay: `${index * 2}s` }}
+    >
+      🚣
+    </span>
+  );
+});
+
+/** Dingy trading boat with rice/dong animation */
+const Dingy = memo(function Dingy({ speedMultiplier }: { speedMultiplier: number }) {
+  return (
+    <div
+      className="dingy-container"
+      style={{
+        // Animation duration scales with speed multiplier (faster = shorter)
+        // Base is 10s, minimum 2s to keep animation visible
+        '--dingy-duration': `${Math.max(2, 10 / speedMultiplier)}s`,
+      } as React.CSSProperties}
+    >
+      <span className="dingy">🚣</span>
+      <span className="dingy-rice rice-1">🌾</span>
+      <span className="dingy-rice rice-2">🌾</span>
+      <span className="dingy-rice rice-3">🌾</span>
+      <span className="dingy-dong dong-1">💰</span>
+      <span className="dingy-dong dong-2">💰</span>
+      <span className="dingy-dong dong-3">💰</span>
+    </div>
+  );
+});
+
+/** Static water flow component */
+const WaterFlow = memo(function WaterFlow() {
+  return (
+    <div className="water-flow">
+      <span className="wave">〰️</span>
+      <span className="wave">〰️</span>
+      <span className="wave">〰️</span>
+      <span className="wave">〰️</span>
+    </div>
+  );
+});
+
+/** River layer with boats and dingy */
+const RiverLayer = memo(function RiverLayer({
+  hasCanal,
+  sampanCount,
+  hasDingy,
+  dingySpeedMultiplier,
+}: {
+  hasCanal: boolean;
+  sampanCount: number;
+  hasDingy: boolean;
+  dingySpeedMultiplier: number;
+}) {
+  // Pre-generate boat indices to avoid recreating array each render
+  const boatIndices = useMemo(() =>
+    Array.from({ length: sampanCount }, (_, i) => i),
+    [sampanCount]
+  );
+
+  return (
+    <div className={`farm-river ${hasCanal ? 'with-canal' : ''}`}>
+      <WaterFlow />
+      {boatIndices.map(i => <Boat key={i} index={i} />)}
+      {hasDingy && <Dingy speedMultiplier={dingySpeedMultiplier} />}
+    </div>
+  );
+});
+
+/** Infrastructure layer */
+const InfrastructureLayer = memo(function InfrastructureLayer({
+  wellCount,
+  carrierCount,
+  hasCanal,
+}: {
+  wellCount: number;
+  carrierCount: number;
+  hasCanal: boolean;
+}) {
+  // Pre-generate indices
+  const wellIndices = useMemo(() =>
+    Array.from({ length: wellCount }, (_, i) => i),
+    [wellCount]
+  );
+  const carrierIndices = useMemo(() =>
+    Array.from({ length: carrierCount }, (_, i) => i),
+    [carrierCount]
+  );
+
+  return (
+    <div className="farm-infrastructure">
+      {wellIndices.map(i => <Well key={`well-${i}`} />)}
+      {hasCanal && (
+        <span className="infra-element canal">
+          <span className="canal-label">〰️ Canal 〰️</span>
+        </span>
+      )}
+      {carrierIndices.map(i => <Carrier key={`carrier-${i}`} index={i} />)}
+    </div>
+  );
+});
+
+/** Paddy grid layer */
+const PaddyGridLayer = memo(function PaddyGridLayer({
+  grid
+}: {
+  grid: PaddyCellData[];
+}) {
+  return (
+    <div className="paddy-grid">
+      {grid.map((cell, i) => (
+        <PaddyCell
+          key={i}
+          hasRice={cell.hasRice}
+          hasWorker={cell.hasWorker}
+          hasBuffalo={cell.hasBuffalo}
+        />
+      ))}
+    </div>
+  );
+});
+
+/** Progress bar */
+const ProgressBar = memo(function ProgressBar({ density }: { density: number }) {
+  return (
+    <div className="farm-progress">
+      <div
+        className="progress-bar"
+        style={{ width: `${density * 100}%` }}
+      />
+    </div>
+  );
+});
+
+// =============================================================================
+// Custom Hook: Debounced Farm State
+// =============================================================================
+
+function useDebouncedFarmState(
+  buildings: Record<string, { owned?: number; unlocked?: boolean }>,
+  currentEra: number
+): FarmState {
+  const [debouncedState, setDebouncedState] = useState<FarmState>(() =>
+    computeFarmState(buildings, currentEra)
+  );
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastStateRef = useRef<string>('');
+
+  useEffect(() => {
+    const newState = computeFarmState(buildings, currentEra);
+    const stateKey = JSON.stringify(newState);
+
+    // Skip if state hasn't actually changed
+    if (stateKey === lastStateRef.current) {
+      return;
+    }
+
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Debounce the update
+    timeoutRef.current = setTimeout(() => {
+      lastStateRef.current = stateKey;
+      setDebouncedState(newState);
+    }, UPDATE_DEBOUNCE_MS);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [buildings, currentEra]);
+
+  return debouncedState;
+}
+
+function computeFarmState(
+  buildings: Record<string, { owned?: number; unlocked?: boolean }>,
+  currentEra: number
+): FarmState {
+  const paddyCount = getBuildingCount(buildings, 'paddy_field');
+  const workerCount = getBuildingCount(buildings, 'family_worker');
+  const buffaloCount = getBuildingCount(buildings, 'buffalo');
+  const wellCount = getBuildingCount(buildings, 'village_well');
+  const carrierCount = getBuildingCount(buildings, 'water_carrier');
+  const canalCount = getBuildingCount(buildings, 'irrigation_canal');
+  const millCount = getBuildingCount(buildings, 'rice_mill');
+  const sampanCount = getBuildingCount(buildings, 'sampan');
+  const dingyCount = getBuildingCount(buildings, 'dingy');
+
+  // Calculate visual density (how "full" the farm looks)
+  const totalBuildings = paddyCount + wellCount + canalCount + millCount;
+  const density = Math.min(totalBuildings / 20, 1);
+
+  // Calculate farm "tier" for visual complexity
+  let tier = 1;
+  if (currentEra >= 2) tier = 2;
+  if (millCount > 0) tier = Math.max(tier, 2);
+  if (sampanCount > 0) tier = Math.max(tier, 2);
+
+  return {
+    paddyCount: Math.min(paddyCount, DISPLAY_CAPS.paddy),
+    workerCount: Math.min(workerCount, DISPLAY_CAPS.worker),
+    buffaloCount: Math.min(buffaloCount, DISPLAY_CAPS.buffalo),
+    wellCount: Math.min(wellCount, DISPLAY_CAPS.well),
+    carrierCount: Math.min(carrierCount, DISPLAY_CAPS.carrier),
+    canalCount: Math.min(canalCount, DISPLAY_CAPS.canal),
+    millCount: Math.min(millCount, DISPLAY_CAPS.mill),
+    sampanCount: Math.min(sampanCount, DISPLAY_CAPS.sampan),
+    dingyCount,
+    density,
+    tier,
+    era: currentEra,
+    hasCanal: isBuildingUnlocked(buildings, 'irrigation_canal') && canalCount > 0,
+    hasMill: millCount > 0,
+    hasBoats: sampanCount > 0,
+    hasDingy: dingyCount > 0,
+  };
+}
+
+// =============================================================================
+// Main Component
+// =============================================================================
 
 export function FarmVisualization() {
   const { state, game } = useGame();
@@ -41,52 +389,13 @@ export function FarmVisualization() {
     return gameWithMult.multiplierSystem?.getValue('dingy_speed') ?? 1;
   }, [game, state]); // Re-check when state changes (upgrades purchased)
 
-  // Calculate farm state based on buildings owned
-  const farmState = useMemo(() => {
-    const paddyCount = getBuildingCount(buildings, 'paddy_field');
-    const workerCount = getBuildingCount(buildings, 'family_worker');
-    const buffaloCount = getBuildingCount(buildings, 'buffalo');
-    const wellCount = getBuildingCount(buildings, 'village_well');
-    const carrierCount = getBuildingCount(buildings, 'water_carrier');
-    const canalCount = getBuildingCount(buildings, 'irrigation_canal');
-    const millCount = getBuildingCount(buildings, 'rice_mill');
-    const sampanCount = getBuildingCount(buildings, 'sampan');
-    const dingyCount = getBuildingCount(buildings, 'dingy');
-
-    // Calculate visual density (how "full" the farm looks)
-    const totalBuildings = paddyCount + wellCount + canalCount + millCount;
-    const density = Math.min(totalBuildings / 20, 1); // Cap at 20 for "full"
-
-    // Calculate farm "tier" for visual complexity
-    let tier = 1;
-    if (currentEra >= 2) tier = 2;
-    if (millCount > 0) tier = Math.max(tier, 2);
-    if (sampanCount > 0) tier = Math.max(tier, 2);
-
-    return {
-      paddyCount: Math.min(paddyCount, 12), // Cap display at 12 paddies
-      workerCount: Math.min(workerCount, 6),
-      buffaloCount: Math.min(buffaloCount, 4),
-      wellCount: Math.min(wellCount, 2),
-      carrierCount: Math.min(carrierCount, 3),
-      canalCount: Math.min(canalCount, 2),
-      millCount: Math.min(millCount, 2),
-      sampanCount: Math.min(sampanCount, 3),
-      dingyCount,
-      density,
-      tier,
-      era: currentEra,
-      hasCanal: isBuildingUnlocked(buildings, 'irrigation_canal') && canalCount > 0,
-      hasMill: millCount > 0,
-      hasBoats: sampanCount > 0,
-      hasDingy: dingyCount > 0,
-    };
-  }, [buildings, currentEra]);
+  // Debounced farm state to reduce re-renders
+  const farmState = useDebouncedFarmState(buildings, currentEra);
 
   // Generate paddy field grid
-  const paddyGrid = useMemo(() => {
-    const grid: Array<{ hasRice: boolean; hasWorker: boolean; hasBuffalo: boolean }> = [];
-    for (let i = 0; i < 12; i++) {
+  const paddyGrid = useMemo((): PaddyCellData[] => {
+    const grid: PaddyCellData[] = [];
+    for (let i = 0; i < GRID_SIZE; i++) {
       grid.push({
         hasRice: i < farmState.paddyCount,
         hasWorker: i < farmState.workerCount && i < farmState.paddyCount,
@@ -100,116 +409,21 @@ export function FarmVisualization() {
 
   return (
     <div className={`farm-visualization era-${farmState.era} tier-${farmState.tier}`}>
-      {/* Sky Layer */}
-      <div className="farm-sky">
-        <span className="sky-element sun">☀️</span>
-        <span className="sky-element cloud cloud-1">☁️</span>
-        <span className="sky-element cloud cloud-2">☁️</span>
-        {farmState.era >= 2 && (
-          <span className="sky-element bird">🐦</span>
-        )}
-      </div>
-
-      {/* Horizon / Background Elements */}
-      <div className="farm-horizon">
-        <span className="horizon-element tree tree-1">🌳</span>
-        <span className="horizon-element home">🏠</span>
-        <span className="horizon-element tree tree-2">🌴</span>
-        {farmState.hasMill && (
-          <span className="horizon-element mill">🏭</span>
-        )}
-      </div>
-
-      {/* Infrastructure Row (Wells, Canals) */}
-      <div className="farm-infrastructure">
-        {Array(farmState.wellCount).fill(0).map((_, i) => (
-          <span key={`well-${i}`} className="infra-element well">
-            <span className="well-icon">⛲</span>
-          </span>
-        ))}
-        {farmState.hasCanal && (
-          <span className="infra-element canal">
-            <span className="canal-label">〰️ Canal 〰️</span>
-          </span>
-        )}
-        {Array(farmState.carrierCount).fill(0).map((_, i) => (
-          <span key={`carrier-${i}`} className={`infra-element carrier carrier-${i}`}>
-            🚶
-          </span>
-        ))}
-      </div>
-
-      {/* Main Paddy Grid - Fixed size cells! */}
-      <div className="paddy-grid">
-        {paddyGrid.map((cell, i) => (
-          <div
-            key={i}
-            className={`paddy-cell ${cell.hasRice ? 'active' : 'empty'}`}
-          >
-            {cell.hasRice && (
-              <>
-                <span className="rice-plant r1">🌾</span>
-                <span className="rice-plant r2">🌾</span>
-                {cell.hasWorker && (
-                  <span className="worker">👨‍🌾</span>
-                )}
-                {cell.hasBuffalo && !cell.hasWorker && (
-                  <span className="buffalo">🐃</span>
-                )}
-              </>
-            )}
-            {!cell.hasRice && (
-              <span className="empty-plot">◻️</span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* River Layer */}
-      <div className={`farm-river ${farmState.hasCanal ? 'with-canal' : ''}`}>
-        <div className="water-flow">
-          <span className="wave">〰️</span>
-          <span className="wave">〰️</span>
-          <span className="wave">〰️</span>
-          <span className="wave">〰️</span>
-        </div>
-        {Array(farmState.sampanCount).fill(0).map((_, i) => (
-          <span
-            key={`boat-${i}`}
-            className={`boat boat-${i}`}
-            style={{ animationDelay: `${i * 2}s` }}
-          >
-            🚣
-          </span>
-        ))}
-        {/* Dingy Trading Boat */}
-        {farmState.hasDingy && (
-          <div
-            className="dingy-container"
-            style={{
-              // Animation duration scales with speed multiplier (faster = shorter)
-              // Base is 10s, minimum 2s to keep animation visible
-              '--dingy-duration': `${Math.max(2, 10 / dingySpeedMultiplier)}s`,
-            } as React.CSSProperties}
-          >
-            <span className="dingy">🚣</span>
-            <span className="dingy-rice rice-1">🌾</span>
-            <span className="dingy-rice rice-2">🌾</span>
-            <span className="dingy-rice rice-3">🌾</span>
-            <span className="dingy-dong dong-1">💰</span>
-            <span className="dingy-dong dong-2">💰</span>
-            <span className="dingy-dong dong-3">💰</span>
-          </div>
-        )}
-      </div>
-
-      {/* Progress Indicator */}
-      <div className="farm-progress">
-        <div
-          className="progress-bar"
-          style={{ width: `${farmState.density * 100}%` }}
-        />
-      </div>
+      <SkyLayer showBird={farmState.era >= 2} />
+      <HorizonLayer hasMill={farmState.hasMill} />
+      <InfrastructureLayer
+        wellCount={farmState.wellCount}
+        carrierCount={farmState.carrierCount}
+        hasCanal={farmState.hasCanal}
+      />
+      <PaddyGridLayer grid={paddyGrid} />
+      <RiverLayer
+        hasCanal={farmState.hasCanal}
+        sampanCount={farmState.sampanCount}
+        hasDingy={farmState.hasDingy}
+        dingySpeedMultiplier={dingySpeedMultiplier}
+      />
+      <ProgressBar density={farmState.density} />
     </div>
   );
 }
