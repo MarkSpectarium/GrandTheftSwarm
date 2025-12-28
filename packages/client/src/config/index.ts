@@ -209,6 +209,25 @@ export const gameConfig: GameConfig = {
       baseValue: 1,
     },
 
+    // Dingy stacks (Era 1 trading)
+    {
+      id: "dingy_speed",
+      name: "Dingy Speed",
+      category: "specific_resource",
+      targetResource: "dingy",
+      stackType: "multiplicative",
+      baseValue: 1,
+      minValue: 0.1,
+    },
+    {
+      id: "dingy_profit",
+      name: "Dingy Profit",
+      category: "specific_resource",
+      targetResource: "dingy",
+      stackType: "multiplicative",
+      baseValue: 1,
+    },
+
     // Special stacks
     {
       id: "starting_rice",
@@ -267,8 +286,8 @@ export const gameConfig: GameConfig = {
         cssClass: "era-1-roots",
         styleKeywords: ["weathered", "paper", "wood", "sepia"],
       },
-      buildings: ["paddy_field", "family_worker", "buffalo"],
-      upgrades: ["better_seeds", "iron_sickle"],
+      buildings: ["paddy_field", "family_worker", "buffalo", "dingy"],
+      upgrades: ["better_seeds", "iron_sickle", "lightweight_hull", "market_contacts"],
       newResources: ["rice", "dong"],
       events: ["monsoon_blessing"],
     },

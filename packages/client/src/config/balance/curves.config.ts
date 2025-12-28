@@ -80,6 +80,18 @@ export const curvePresets: CurvePreset[] = [
     },
   },
 
+  {
+    id: "cost_dingy_5x",
+    name: "Dingy Cost Scaling (5x)",
+    description: "5x increase per purchase, for trading boats",
+    curve: {
+      type: "exponential",
+      base: 1,
+      rate: 5,
+      countVar: "owned",
+    },
+  },
+
   // ===========================================================================
   // PRODUCTION CURVES
   // ===========================================================================

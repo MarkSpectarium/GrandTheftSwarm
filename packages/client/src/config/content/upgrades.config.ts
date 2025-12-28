@@ -434,6 +434,196 @@ export const upgrades: UpgradeConfig[] = [
     prerequisites: ["bulk_materials"],
     resetsOnPrestige: true,
   },
+
+  // ---------------------------------------------------------------------------
+  // DINGY UPGRADES - Improve rice trading
+  // ---------------------------------------------------------------------------
+
+  {
+    id: "lightweight_hull",
+    name: "Lightweight Hull",
+    description: "A lighter boat hull for faster trips. +25% dingy speed.",
+    flavorText: "Shave weight, save time.",
+    category: "efficiency",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "dingy", count: 1 },
+        description: "Own a Dingy",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "boat_speed",
+    cost: [{ resourceId: "dong", amount: 500 }],
+    effects: [
+      {
+        stackId: "dingy_speed",
+        value: 1.25,
+      },
+    ],
+    resetsOnPrestige: true,
+  },
+
+  {
+    id: "river_knowledge",
+    name: "River Knowledge",
+    description: "Learn the fastest currents and shortcuts. +50% dingy speed.",
+    flavorText: "The river has many secrets to share.",
+    category: "efficiency",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "dingy", count: 1 },
+        description: "Own a Dingy",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "river_map",
+    cost: [{ resourceId: "dong", amount: 2000 }],
+    effects: [
+      {
+        stackId: "dingy_speed",
+        value: 1.5,
+      },
+    ],
+    prerequisites: ["lightweight_hull"],
+    resetsOnPrestige: true,
+  },
+
+  {
+    id: "double_paddles",
+    name: "Double Paddles",
+    description: "Twice the paddles, twice the speed. +100% dingy speed.",
+    flavorText: "Row faster, earn faster.",
+    category: "efficiency",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "dingy", count: 2 },
+        description: "Own 2 Dingies",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "paddles",
+    cost: [{ resourceId: "dong", amount: 10000 }],
+    effects: [
+      {
+        stackId: "dingy_speed",
+        value: 2.0,
+      },
+    ],
+    prerequisites: ["river_knowledge"],
+    resetsOnPrestige: true,
+  },
+
+  {
+    id: "market_contacts",
+    name: "Market Contacts",
+    description: "Better connections at the market. +25% profit per trip.",
+    flavorText: "A friend in the market is worth two in the field.",
+    category: "efficiency",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "dingy", count: 1 },
+        description: "Own a Dingy",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "market",
+    cost: [{ resourceId: "dong", amount: 750 }],
+    effects: [
+      {
+        stackId: "dingy_profit",
+        value: 1.25,
+      },
+    ],
+    resetsOnPrestige: true,
+  },
+
+  {
+    id: "premium_buyer",
+    name: "Premium Buyer",
+    description: "Found a buyer who pays top dong. +50% profit per trip.",
+    flavorText: "Quality rice deserves quality prices.",
+    category: "efficiency",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "dingy", count: 1 },
+        description: "Own a Dingy",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "premium",
+    cost: [{ resourceId: "dong", amount: 3000 }],
+    effects: [
+      {
+        stackId: "dingy_profit",
+        value: 1.5,
+      },
+    ],
+    prerequisites: ["market_contacts"],
+    resetsOnPrestige: true,
+  },
+
+  {
+    id: "exclusive_contract",
+    name: "Exclusive Contract",
+    description: "Lock in an exclusive deal with a wealthy merchant. +100% profit per trip.",
+    flavorText: "When the rich want rice, they pay whatever it takes.",
+    category: "efficiency",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "dingy", count: 2 },
+        description: "Own 2 Dingies",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "contract",
+    cost: [{ resourceId: "dong", amount: 15000 }],
+    effects: [
+      {
+        stackId: "dingy_profit",
+        value: 2.0,
+      },
+    ],
+    prerequisites: ["premium_buyer"],
+    resetsOnPrestige: true,
+  },
+
+  {
+    id: "larger_cargo_hold",
+    name: "Larger Cargo Hold",
+    description: "Expand the cargo hold to carry more rice. +50% carry capacity.",
+    flavorText: "More rice, more profit. Simple math.",
+    category: "efficiency",
+    unlockedAtEra: 1,
+    unlockRequirements: [
+      {
+        type: "building_owned",
+        params: { building: "dingy", count: 1 },
+        description: "Own a Dingy",
+      },
+    ],
+    visibleBeforeUnlock: true,
+    icon: "cargo",
+    cost: [{ resourceId: "dong", amount: 5000 }],
+    effects: [
+      {
+        stackId: "dingy_profit",
+        value: 1.5, // More cargo = more profit (same efficiency)
+      },
+    ],
+    resetsOnPrestige: true,
+  },
 ];
 
 // =============================================================================
@@ -490,6 +680,31 @@ export const upgradePaths: UpgradePathConfig[] = [
       "local_connections",
     ],
     theme: "techniques",
+  },
+  {
+    id: "dingy_speed_path",
+    name: "Swift Sailing",
+    description: "Make your dingies faster",
+    unlockedAtEra: 1,
+    upgradeIds: [
+      "lightweight_hull",
+      "river_knowledge",
+      "double_paddles",
+    ],
+    theme: "efficiency",
+  },
+  {
+    id: "dingy_profit_path",
+    name: "Trade Mastery",
+    description: "Maximize profits from rice trading",
+    unlockedAtEra: 1,
+    upgradeIds: [
+      "market_contacts",
+      "premium_buyer",
+      "exclusive_contract",
+      "larger_cargo_hold",
+    ],
+    theme: "trade",
   },
 ];
 
