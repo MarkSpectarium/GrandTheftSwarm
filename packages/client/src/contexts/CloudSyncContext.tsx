@@ -11,6 +11,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import { useAuth } from './AuthContext';
@@ -42,10 +43,14 @@ export function CloudSyncProvider({ children }: CloudSyncProviderProps) {
   const [conflict, setConflict] = useState<SaveConflictInfo | null>(null);
   const [hasInitialSynced, setHasInitialSynced] = useState(false);
 
+  // Use ref to track conflict detection (synchronous, no stale closure issues)
+  const conflictDetectedRef = useRef(false);
+
   // Handle conflict events from SaveSystem
   useEffect(() => {
     const handleConflict = (info: { localSave: unknown; cloudSave: unknown; localTimestamp: number; cloudTimestamp: number }) => {
       console.log('CloudSync: Conflict detected', info);
+      conflictDetectedRef.current = true; // Set ref synchronously
       setSyncStatus('conflict');
       // Cast the event payload to SaveConflictInfo (types match at runtime)
       setConflict(info as unknown as SaveConflictInfo);
@@ -79,16 +84,16 @@ export function CloudSyncProvider({ children }: CloudSyncProviderProps) {
       console.log('CloudSync: User authenticated, attempting cloud sync');
       setSyncStatus('syncing');
       setHasInitialSynced(true);
+      conflictDetectedRef.current = false; // Reset before sync
 
       game.loadFromCloud().then((success) => {
         if (success) {
           console.log('CloudSync: Successfully loaded from cloud');
-          setSyncStatus('synced');
-          setLastSyncedAt(Date.now());
-        } else if (syncStatus !== 'conflict') {
-          // loadFromCloud returns false on conflict (handled by event)
+          // Success is handled by event listener
+        } else if (!conflictDetectedRef.current) {
+          // loadFromCloud returns false on conflict (conflict ref is set)
           // or if no cloud save exists - in which case, upload local
-          console.log('CloudSync: No cloud save or conflict, uploading local');
+          console.log('CloudSync: No cloud save found, uploading local');
           game.syncToCloud().then((syncSuccess) => {
             if (syncSuccess) {
               setSyncStatus('synced');
@@ -96,12 +101,13 @@ export function CloudSyncProvider({ children }: CloudSyncProviderProps) {
             }
           });
         }
+        // If conflictDetectedRef.current is true, conflict modal will show
       }).catch((error) => {
         console.error('CloudSync: Failed to sync', error);
         setSyncStatus('error');
       });
     }
-  }, [isAuthenticated, user, game, hasInitialSynced, syncStatus]);
+  }, [isAuthenticated, user, game, hasInitialSynced]);
 
   // Reset sync state on logout
   useEffect(() => {
