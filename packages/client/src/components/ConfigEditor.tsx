@@ -17,6 +17,8 @@ import {
   importConfigOverrides,
   clearConfigOverrides,
   getOverrideSummary,
+  saveConfigToFiles,
+  checkDevConfigApiStatus,
 } from '../systems/ConfigOverrideSystem';
 import type { CurveRef } from '../config/types';
 import './ConfigEditor.css';
@@ -65,9 +67,18 @@ export function ConfigEditor({ isOpen, onClose, onApply }: ConfigEditorProps) {
   const [selectedUpgradeId, setSelectedUpgradeId] = useState<string>('');
   const [importText, setImportText] = useState('');
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [apiEnabled, setApiEnabled] = useState<boolean | null>(null);
+  const [isSavingToFiles, setIsSavingToFiles] = useState(false);
 
   // Get summary of changes
   const summary = useMemo(() => getOverrideSummary(overrides), [overrides]);
+
+  // Check API status on mount
+  useEffect(() => {
+    checkDevConfigApiStatus().then(status => {
+      setApiEnabled(status.enabled);
+    });
+  }, []);
 
   // Set initial selection when tab changes
   useEffect(() => {
@@ -131,6 +142,24 @@ export function ConfigEditor({ isOpen, onClose, onApply }: ConfigEditorProps) {
       showStatus('error', 'Invalid config format');
     }
   }, [importText, showStatus]);
+
+  // Save to source files via API
+  const handleSaveToFiles = useCallback(async () => {
+    setIsSavingToFiles(true);
+    try {
+      const result = await saveConfigToFiles(overrides);
+      if (result.success) {
+        showStatus('success', 'Config written to source files!');
+        // Also clear localStorage overrides since they're now in the source
+        clearConfigOverrides();
+        setOverrides(loadConfigOverrides());
+      } else {
+        showStatus('error', result.message);
+      }
+    } finally {
+      setIsSavingToFiles(false);
+    }
+  }, [overrides, showStatus]);
 
   // Update building override
   const updateBuildingOverride = useCallback((
@@ -715,10 +744,19 @@ export function ConfigEditor({ isOpen, onClose, onApply }: ConfigEditorProps) {
 
         <footer className="config-editor-footer">
           <button className="config-editor-btn" onClick={handleSave}>
-            Save
+            Save to Browser
           </button>
-          <button className="config-editor-btn config-editor-btn--primary" onClick={handleApply}>
-            Save & Apply (Requires Reload)
+          {apiEnabled && (
+            <button
+              className="config-editor-btn config-editor-btn--primary"
+              onClick={handleSaveToFiles}
+              disabled={isSavingToFiles}
+            >
+              {isSavingToFiles ? 'Writing...' : 'Save to Source Files'}
+            </button>
+          )}
+          <button className="config-editor-btn config-editor-btn--secondary" onClick={handleApply}>
+            Apply & Reload
           </button>
           <button className="config-editor-btn config-editor-btn--secondary" onClick={onClose}>
             Cancel

@@ -251,3 +251,80 @@ export function getOverrideSummary(overrides: ConfigOverrides): {
     hasGameplayOverrides: Object.keys(overrides.gameplay).length > 0,
   };
 }
+
+// =============================================================================
+// FILE WRITE API
+// =============================================================================
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+export interface SaveToFilesResult {
+  success: boolean;
+  message: string;
+  results?: Record<string, { success: boolean; message: string }>;
+  error?: string;
+}
+
+/**
+ * Save config overrides to source files via API
+ * This writes the changes to the actual TypeScript config files
+ */
+export async function saveConfigToFiles(overrides: ConfigOverrides): Promise<SaveToFilesResult> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/dev/config`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(overrides),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+        error: errorData.error,
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      message: result.message || 'Config files updated successfully',
+      results: result.results,
+    };
+  } catch (error) {
+    console.error('ConfigOverrideSystem: Failed to save to files', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Network error',
+      error: 'NETWORK_ERROR',
+    };
+  }
+}
+
+/**
+ * Check if the dev config API is available
+ */
+export async function checkDevConfigApiStatus(): Promise<{
+  enabled: boolean;
+  configPath?: string;
+  exists?: boolean;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/dev/config/status`);
+
+    if (!response.ok) {
+      return { enabled: false, error: `HTTP ${response.status}` };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      enabled: false,
+      error: error instanceof Error ? error.message : 'Network error',
+    };
+  }
+}

@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { authRouter } from './routes/auth';
 import { savesRouter } from './routes/saves';
+import { devConfigRouter } from './routes/devConfig';
 import { authMiddleware } from './middleware/auth';
 
 // Load environment variables
@@ -25,6 +26,7 @@ app.get('/api/health', (_req, res) => {
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/saves', authMiddleware, savesRouter);
+app.use('/api/dev/config', devConfigRouter); // Dev config editor - no auth required
 
 // Error handling
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
