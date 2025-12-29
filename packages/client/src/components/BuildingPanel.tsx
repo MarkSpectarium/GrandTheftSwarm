@@ -2,6 +2,7 @@ import { memo, useMemo, useCallback } from 'react';
 import { useGame } from '../contexts/GameContext';
 import { formatNumber, formatRate } from '../utils/NumberFormatter';
 import { getBuildingIcon } from '../config/ui/icons.config';
+import { timingConfig } from '../config/balance/timing.config';
 import type { BuildingConfig } from '../config/types/buildings';
 import type { BuildingInfo } from '../systems/BuildingSystem';
 
@@ -49,9 +50,18 @@ const BuildingItem = memo(function BuildingItem({
     .map(([id, rate]) => `${formatRate(rate)} ${getResourceName(id)}`)
     .join(', ');
 
+  // Convert consumption from per-tick to per-second for display
+  const ticksPerSecond = 1000 / timingConfig.baseTickMs;
   const consumptionText = consumptionPerTick
     ? Object.entries(consumptionPerTick)
-        .map(([id, rate]) => `-${formatRate(rate)} ${getResourceName(id)}`)
+        .map(([id, ratePerTick]) => `-${formatRate(ratePerTick * ticksPerSecond)} ${getResourceName(id)}`)
+        .join(', ')
+    : null;
+
+  // Build preview consumption text (per unit, per second)
+  const previewConsumptionText = preview.consumptionPerUnit
+    ? preview.consumptionPerUnit
+        .map(c => `${formatRate(c.perSecond)} ${getResourceName(c.resourceId)}`)
         .join(', ')
     : null;
 
@@ -118,9 +128,15 @@ const BuildingItem = memo(function BuildingItem({
           <span className="preview-value">{previewOutputText}</span>
         </div>
         {previewInputText && (
-          <div className="preview-consumption">
+          <div className="preview-input">
             <span className="preview-label">Uses:</span>
             <span className="preview-value">{previewInputText}{preview.isBatchProduction ? '/trip' : '/cycle'}</span>
+          </div>
+        )}
+        {previewConsumptionText && (
+          <div className="preview-consumption">
+            <span className="preview-label">Consumes:</span>
+            <span className="preview-value">{previewConsumptionText}</span>
           </div>
         )}
         {preview.effects && preview.effects.length > 0 && (
