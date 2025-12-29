@@ -151,11 +151,13 @@ async function main() {
   console.log(`[dev] Starting dev servers...`);
   console.log(`[dev]   Client: http://localhost:${ports.clientPort}`);
   console.log(`[dev]   API:    http://localhost:${ports.apiPort}`);
+  console.log(`[dev]   Config Editor API: http://localhost:${ports.apiPort}/api/dev/config`);
   console.log('');
 
   // Set up environment for child processes
   const env = {
     ...process.env,
+    NODE_ENV: 'development',
     VITE_API_URL: `http://localhost:${ports.apiPort}`,
     PORT: String(ports.apiPort),
     CLIENT_URL: `http://localhost:${ports.clientPort}`,
