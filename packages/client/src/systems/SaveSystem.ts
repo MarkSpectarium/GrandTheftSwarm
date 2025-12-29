@@ -447,13 +447,19 @@ export class SaveSystem {
       const cloudSave = response.save;
       const localSerialized = localStorage.getItem(this.config.saveKey);
 
-      // Check for conflict with local save
+      // Steam-style: if both saves exist, ALWAYS let user choose
       if (localSerialized) {
         const localSave: LocalSaveData = JSON.parse(localSerialized);
         const cloudTimestamp = new Date(cloudSave.updatedAt).getTime();
 
-        if (localSave.timestamp > cloudTimestamp) {
-          // Local is newer - emit conflict
+        // Check if saves are different (by checksum or timestamp)
+        const savesAreDifferent =
+          localSave.checksum !== cloudSave.checksum ||
+          Math.abs(localSave.timestamp - cloudTimestamp) > 1000; // Allow 1s tolerance
+
+        if (savesAreDifferent) {
+          // Emit conflict - let user choose which save to keep
+          console.log("SaveSystem: Local and cloud saves differ, showing conflict dialog");
           EventBus.emit("cloud:sync:conflict", {
             localSave,
             cloudSave,
@@ -462,6 +468,12 @@ export class SaveSystem {
           });
           return false;
         }
+
+        // Saves are identical - no need to do anything
+        console.log("SaveSystem: Local and cloud saves are identical");
+        this.setLastSyncedAt(Date.now());
+        EventBus.emit("cloud:load:success", { save: cloudSave });
+        return true;
       }
 
       // Cloud save is newer or no local save exists - load cloud save
