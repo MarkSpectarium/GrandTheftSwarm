@@ -8,8 +8,13 @@
 import { Router, type Request, type Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 export const devConfigRouter: Router = Router();
+
+// Get __dirname equivalent for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Path to client config directory (relative to API package)
 const CLIENT_CONFIG_PATH = path.resolve(__dirname, '../../../client/src/config');
