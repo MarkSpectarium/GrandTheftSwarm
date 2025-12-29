@@ -201,6 +201,21 @@ export class StateManager {
   }
 
   /**
+   * Update building resource limit (for transport buildings with slider)
+   */
+  updateBuildingResourceLimit(buildingId: string, limit: number): void {
+    const building = this.state.buildings[buildingId];
+    if (!building) {
+      console.warn(`StateManager: Unknown building "${buildingId}"`);
+      return;
+    }
+
+    building.resourceLimit = Math.max(0, Math.min(1, limit));
+    EventBus.emit("building:resourceLimit:changed", { buildingId, limit: building.resourceLimit });
+    this.notifySubscribers();
+  }
+
+  /**
    * Remove buildings (for when they die from consumption)
    */
   removeBuilding(buildingId: string, count: number = 1): void {

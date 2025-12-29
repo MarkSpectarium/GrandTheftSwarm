@@ -39,6 +39,33 @@ export interface BuildingInfo {
   };
   /** Consumption per tick (undefined if no consumption) */
   consumptionPerTick?: Record<string, number>;
+  /** Preview info for before purchasing / showing what building does */
+  preview: {
+    /** Production output description (per unit) */
+    outputsPerUnit: Array<{ resourceId: string; amount: number; perSecond: number }>;
+    /** Production input description (per unit) - for converter buildings */
+    inputsPerUnit?: Array<{ resourceId: string; amount: number; perCycle: number }>;
+    /** Cycle duration in seconds (for batch production) */
+    cycleDurationSeconds?: number;
+    /** Is this batch production (discrete trips) */
+    isBatchProduction: boolean;
+    /** Effects description */
+    effects?: string[];
+  };
+  /** Info about what the next purchase would provide */
+  nextPurchase: {
+    /** Production increase per second from buying one more */
+    productionIncrease: Record<string, number>;
+    /** Cost for the next purchase */
+    nextCost: BuildingCost[];
+  };
+  /** Resource limit configuration for transport buildings */
+  resourceLimitConfig?: {
+    /** Current resource limit (0-1, undefined means no limit) */
+    currentLimit: number;
+    /** Whether this building supports resource limits */
+    hasSlider: boolean;
+  };
 }
 
 export class BuildingSystem {
@@ -65,7 +92,13 @@ export class BuildingSystem {
     this.multiplierSystem = multiplierSystem;
     this.curveEvaluator = getCurveEvaluator();
     this.unlockEvaluator = new UnlockEvaluator(stateManager, resourceSystem);
-    this.productionProcessor = new ProductionProcessor(resourceSystem, multiplierSystem);
+
+    // Create production processor with resource limit getter
+    this.productionProcessor = new ProductionProcessor(
+      resourceSystem,
+      multiplierSystem,
+      (buildingId: string) => this.getResourceLimit(buildingId)
+    );
 
     // Initialize production tracking for all buildings
     for (const building of config.buildings) {
@@ -130,6 +163,15 @@ export class BuildingSystem {
       }
     }
 
+    // Build preview info
+    const preview = this.buildPreviewInfo(config);
+
+    // Calculate next purchase info
+    const nextPurchase = this.buildNextPurchaseInfo(config, owned);
+
+    // Build resource limit config for transport buildings
+    const resourceLimitConfig = this.buildResourceLimitConfig(config, state);
+
     return {
       config,
       owned,
@@ -139,7 +181,195 @@ export class BuildingSystem {
       productionPerSecond,
       health,
       consumptionPerTick,
+      preview,
+      nextPurchase,
+      resourceLimitConfig,
     };
+  }
+
+  /**
+   * Build preview info for a building (what it does per unit)
+   */
+  private buildPreviewInfo(config: BuildingConfig): BuildingInfo["preview"] {
+    const intervalSeconds = config.production.baseIntervalMs / 1000;
+    const isBatchProduction = config.production.batchProduction ?? false;
+
+    // Calculate outputs per unit
+    const outputsPerUnit = config.production.outputs.map((output) => {
+      let amount = output.baseAmount;
+
+      // Apply chance modifier for display
+      if (output.chance !== undefined) {
+        amount *= output.chance;
+      }
+
+      return {
+        resourceId: output.resourceId,
+        amount: output.baseAmount, // Raw amount per cycle
+        perSecond: amount / intervalSeconds, // Rate per second
+      };
+    });
+
+    // Calculate inputs per unit (for converter buildings)
+    let inputsPerUnit: BuildingInfo["preview"]["inputsPerUnit"];
+    if (config.production.inputs && config.production.inputs.length > 0) {
+      inputsPerUnit = config.production.inputs.map((input) => {
+        const amount = typeof input.amount === "number"
+          ? input.amount
+          : 0; // For curve-based amounts, just show 0 (would need evaluation)
+
+        return {
+          resourceId: input.resourceId,
+          amount,
+          perCycle: amount,
+        };
+      });
+    }
+
+    // Build effects descriptions
+    let effects: string[] | undefined;
+    if (config.effects && config.effects.length > 0) {
+      effects = config.effects.map((effect) => {
+        const value = effect.valuePerUnit ?? effect.value;
+        const percent = Math.round(value * 100);
+        return `+${percent}% ${effect.stackId.replace(/_/g, " ")}`;
+      });
+    }
+
+    if (config.specialEffects && config.specialEffects.length > 0) {
+      effects = effects ?? [];
+      for (const effect of config.specialEffects) {
+        effects.push(effect.description);
+      }
+    }
+
+    return {
+      outputsPerUnit,
+      inputsPerUnit,
+      cycleDurationSeconds: isBatchProduction ? intervalSeconds : undefined,
+      isBatchProduction,
+      effects,
+    };
+  }
+
+  /**
+   * Build next purchase info (what buying one more would provide)
+   */
+  private buildNextPurchaseInfo(
+    config: BuildingConfig,
+    currentOwned: number
+  ): BuildingInfo["nextPurchase"] {
+    // Calculate production increase from one more building
+    const productionIncrease = this.productionProcessor.calculateProductionPerSecond(
+      config,
+      1 // Calculate for just 1 unit
+    );
+
+    // Calculate cost for next purchase (after current owned)
+    // We need to calculate cost as if we already own 'currentOwned'
+    const nextCost = this.calculateCostForNth(config, currentOwned);
+
+    return {
+      productionIncrease,
+      nextCost,
+    };
+  }
+
+  /**
+   * Calculate cost for the Nth building (0-indexed)
+   */
+  private calculateCostForNth(config: BuildingConfig, n: number): BuildingCost[] {
+    const hasSubsequentCost = config.subsequentCost && config.subsequentCost.length > 0;
+    const costReduction = this.multiplierSystem.getValue("building_cost");
+    const costs: BuildingCost[] = [];
+
+    if (hasSubsequentCost) {
+      if (n === 0) {
+        // First purchase uses baseCost
+        for (const baseCost of config.baseCost) {
+          const baseAmount = typeof baseCost.amount === "number"
+            ? baseCost.amount
+            : this.curveEvaluator.evaluate(baseCost.amount, { owned: 0 });
+
+          costs.push({
+            resourceId: baseCost.resourceId,
+            amount: Math.ceil(baseAmount * costReduction),
+          });
+        }
+      } else {
+        // Subsequent purchases use subsequentCost with curve scaling
+        const subsequentIndex = n - 1;
+        const context = { owned: subsequentIndex };
+        const multiplier = this.curveEvaluator.evaluate(config.costCurve, context);
+
+        for (const subCost of config.subsequentCost!) {
+          const baseAmount = typeof subCost.amount === "number"
+            ? subCost.amount
+            : this.curveEvaluator.evaluate(subCost.amount, { owned: 0 });
+
+          costs.push({
+            resourceId: subCost.resourceId,
+            amount: Math.ceil(baseAmount * multiplier * costReduction),
+          });
+        }
+      }
+    } else {
+      // Standard cost calculation
+      const context = { owned: n };
+      const multiplier = this.curveEvaluator.evaluate(config.costCurve, context);
+
+      for (const baseCost of config.baseCost) {
+        const baseAmount = typeof baseCost.amount === "number"
+          ? baseCost.amount
+          : this.curveEvaluator.evaluate(baseCost.amount, { owned: 0 });
+
+        costs.push({
+          resourceId: baseCost.resourceId,
+          amount: Math.ceil(baseAmount * multiplier * costReduction),
+        });
+      }
+    }
+
+    return costs;
+  }
+
+  /**
+   * Build resource limit config for transport buildings
+   */
+  private buildResourceLimitConfig(
+    config: BuildingConfig,
+    state: { resourceLimit?: number } | undefined
+  ): BuildingInfo["resourceLimitConfig"] {
+    // Only transport category buildings with inputs get the slider
+    if (config.category !== "transport") {
+      return undefined;
+    }
+
+    // Must have production inputs to have a resource limit slider
+    if (!config.production.inputs || config.production.inputs.length === 0) {
+      return undefined;
+    }
+
+    return {
+      currentLimit: state?.resourceLimit ?? 1.0, // Default to 100%
+      hasSlider: true,
+    };
+  }
+
+  /**
+   * Set the resource limit for a building
+   */
+  setResourceLimit(buildingId: string, limit: number): void {
+    const clampedLimit = Math.max(0, Math.min(1, limit));
+    this.stateManager.updateBuildingResourceLimit(buildingId, clampedLimit);
+  }
+
+  /**
+   * Get the resource limit for a building
+   */
+  getResourceLimit(buildingId: string): number {
+    const state = this.stateManager.getBuilding(buildingId);
+    return state?.resourceLimit ?? 1.0;
   }
 
   /**

@@ -32,6 +32,7 @@ export type GameEventType =
   | "building:died"
   | "building:disabled"
   | "building:batch:complete"
+  | "building:resourceLimit:changed"
 
   // Consumption events
   | "consumption:shortage"
@@ -106,6 +107,7 @@ export interface GameEventPayload {
   "building:died": { buildingId: string; buildingName: string; remaining: number; cause: string };
   "building:disabled": { buildingId: string; reason: string };
   "building:batch:complete": { buildingId: string; buildingName: string };
+  "building:resourceLimit:changed": { buildingId: string; limit: number };
 
   "consumption:shortage": { buildingId: string; resourceId: string; required: number; available: number; missing: number };
   "consumption:processed": { buildingId: string; resourceId: string; required: number; consumed: number; missing: number };

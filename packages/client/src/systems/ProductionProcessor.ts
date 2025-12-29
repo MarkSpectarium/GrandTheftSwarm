@@ -12,23 +12,29 @@ import { CurveEvaluator, getCurveEvaluator } from "../core/CurveEvaluator";
 import { ProductionAccumulator } from "./ProductionAccumulator";
 import type { BuildingConfig } from "../config/types";
 
+/** Callback to get resource limit for a building */
+export type ResourceLimitGetter = (buildingId: string) => number;
+
 export class ProductionProcessor {
   private resourceSystem: ResourceSystem;
   private multiplierSystem: MultiplierSystem;
   private curveEvaluator: CurveEvaluator;
   private productionAccumulator: ProductionAccumulator;
+  private getResourceLimit: ResourceLimitGetter;
 
   // Tracks accumulated time for batch production buildings (in ms)
   private batchProductionTimers: Map<string, number> = new Map();
 
   constructor(
     resourceSystem: ResourceSystem,
-    multiplierSystem: MultiplierSystem
+    multiplierSystem: MultiplierSystem,
+    getResourceLimit?: ResourceLimitGetter
   ) {
     this.resourceSystem = resourceSystem;
     this.multiplierSystem = multiplierSystem;
     this.curveEvaluator = getCurveEvaluator();
     this.productionAccumulator = new ProductionAccumulator(resourceSystem);
+    this.getResourceLimit = getResourceLimit ?? (() => 1.0);
   }
 
   /**
@@ -171,20 +177,24 @@ export class ProductionProcessor {
     const currentTimer = this.batchProductionTimers.get(config.id) ?? 0;
     let accumulatedMs = currentTimer + deltaMs;
 
+    // Get resource limit for this building (transport buildings may have slider)
+    const resourceLimit = this.getResourceLimit(config.id);
+
     // Process as many complete cycles as we can
     while (accumulatedMs >= effectiveIntervalMs) {
-      // Check if we have enough inputs for a full batch
+      // Check if we have enough inputs for a full batch (respecting resource limit)
       if (config.production.inputs && config.production.inputs.length > 0) {
-        if (!this.canAffordBatchInputs(config, owned)) {
+        const affordableAmount = this.calculateAffordableBatchAmount(config, owned, resourceLimit);
+        if (affordableAmount <= 0) {
           // Not enough inputs - pause the timer and wait
           break;
         }
-        // Consume full batch of inputs
-        this.consumeBatchInputs(config, owned);
+        // Consume batch of inputs (limited by resource limit and availability)
+        this.consumeBatchInputs(config, owned, resourceLimit);
       }
 
-      // Produce full batch of outputs
-      this.produceBatchOutputs(config, owned);
+      // Produce batch of outputs (scaled by resource limit if there are inputs)
+      this.produceBatchOutputs(config, owned, resourceLimit);
 
       // Subtract one cycle
       accumulatedMs -= effectiveIntervalMs;
@@ -201,52 +211,82 @@ export class ProductionProcessor {
   }
 
   /**
-   * Check if we can afford inputs for one complete batch
+   * Calculate how much of a batch we can afford, respecting resource limit.
+   * Returns a fraction (0-1) representing how much of the full batch we can process.
    */
-  private canAffordBatchInputs(config: BuildingConfig, owned: number): boolean {
-    if (!config.production.inputs) return true;
+  private calculateAffordableBatchAmount(
+    config: BuildingConfig,
+    owned: number,
+    resourceLimit: number
+  ): number {
+    if (!config.production.inputs) return 1.0;
+
+    let minFraction = resourceLimit; // Start with the resource limit as max
 
     for (const input of config.production.inputs) {
       const baseAmount = typeof input.amount === "number"
         ? input.amount
         : this.curveEvaluator.evaluate(input.amount, { owned });
 
-      const needed = baseAmount * owned;
+      const maxNeeded = baseAmount * owned;
+      const limitedNeeded = maxNeeded * resourceLimit;
       const available = this.resourceSystem.getAmount(input.resourceId);
 
-      if (available < needed) {
-        return false;
+      if (limitedNeeded > 0) {
+        // Calculate what fraction we can actually afford
+        const affordableFraction = Math.min(available / maxNeeded, resourceLimit);
+        minFraction = Math.min(minFraction, affordableFraction);
       }
     }
-    return true;
+
+    return minFraction;
   }
 
   /**
-   * Consume inputs for one complete batch
+   * Consume inputs for one batch, respecting resource limit.
+   * Returns the fraction of the full batch that was consumed.
    */
-  private consumeBatchInputs(config: BuildingConfig, owned: number): void {
-    if (!config.production.inputs) return;
+  private consumeBatchInputs(
+    config: BuildingConfig,
+    owned: number,
+    resourceLimit: number
+  ): number {
+    if (!config.production.inputs) return 1.0;
+
+    // Calculate how much we can actually consume
+    const fraction = this.calculateAffordableBatchAmount(config, owned, resourceLimit);
+    if (fraction <= 0) return 0;
 
     for (const input of config.production.inputs) {
       const baseAmount = typeof input.amount === "number"
         ? input.amount
         : this.curveEvaluator.evaluate(input.amount, { owned });
 
-      const toConsume = baseAmount * owned;
+      const toConsume = baseAmount * owned * fraction;
       this.resourceSystem.spendResource(
         input.resourceId,
         toConsume,
         `batch:${config.id}`
       );
     }
+
+    return fraction;
   }
 
   /**
-   * Produce outputs for one complete batch
+   * Produce outputs for one batch, scaled by the resource limit fraction.
    */
-  private produceBatchOutputs(config: BuildingConfig, owned: number): void {
+  private produceBatchOutputs(
+    config: BuildingConfig,
+    owned: number,
+    resourceLimit: number
+  ): void {
+    // If there are inputs, scale output by the resource limit
+    const hasInputs = config.production.inputs && config.production.inputs.length > 0;
+    const scaleFactor = hasInputs ? resourceLimit : 1.0;
+
     for (const output of config.production.outputs) {
-      let amount = output.baseAmount * owned;
+      let amount = output.baseAmount * owned * scaleFactor;
 
       // Apply chance modifier
       if (output.chance !== undefined && output.chance < 1) {

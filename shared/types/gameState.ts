@@ -31,6 +31,13 @@ export interface BuildingState {
   health?: number;
   /** Maximum health (for buildings with consumption) */
   maxHealth?: number;
+  /**
+   * Resource limit for buildings that consume resources (e.g., transport buildings).
+   * Value from 0 to 1, representing percentage of max consumption allowed.
+   * 1.0 = consume up to max available, 0.5 = consume at most 50%, etc.
+   * Undefined means no limit (default behavior).
+   */
+  resourceLimit?: number;
 }
 
 export interface UpgradeState {
