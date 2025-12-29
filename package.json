@@ -5,6 +5,7 @@
   "description": "A browser-based idle farming game where players build a rice empire in Vietnam's Mekong Delta",
   "type": "module",
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "dev": "node scripts/dev.js",
     "dev:client": "pnpm --filter client dev",
     "dev:api": "pnpm --filter api dev",
