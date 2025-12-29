@@ -349,6 +349,15 @@
   background: #16162a;
   border-top: 1px solid #2a2a4e;
   justify-content: flex-end;
+  align-items: center;
+}
+
+/* Version indicator */
+.config-editor-version {
+  margin-right: auto;
+  font-size: 0.75rem;
+  color: #666;
+  font-family: monospace;
 }
 
 /* Buttons */

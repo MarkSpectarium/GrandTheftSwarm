@@ -743,6 +743,7 @@ export function ConfigEditor({ isOpen, onClose, onApply }: ConfigEditorProps) {
         </main>
 
         <footer className="config-editor-footer">
+          <span className="config-editor-version">Build: {__GIT_COMMIT__}</span>
           <button className="config-editor-btn" onClick={handleSave}>
             Save to Browser
           </button>
