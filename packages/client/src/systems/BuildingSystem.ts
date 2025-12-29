@@ -17,6 +17,7 @@ import {
   buildingHealthConfig,
   buildingCalculationConfig,
 } from "../config/balance/buildings.balance.config";
+import { timingConfig } from "../config/balance/timing.config";
 
 export interface BuildingCost {
   resourceId: string;
@@ -45,6 +46,8 @@ export interface BuildingInfo {
     outputsPerUnit: Array<{ resourceId: string; amount: number; perSecond: number }>;
     /** Production input description (per unit) - for converter buildings */
     inputsPerUnit?: Array<{ resourceId: string; amount: number; perCycle: number }>;
+    /** Consumption per unit (per second) - for buildings that consume resources to survive */
+    consumptionPerUnit?: Array<{ resourceId: string; perSecond: number }>;
     /** Cycle duration in seconds (for batch production) */
     cycleDurationSeconds?: number;
     /** Is this batch production (discrete trips) */
@@ -226,6 +229,16 @@ export class BuildingSystem {
       });
     }
 
+    // Calculate consumption per unit (for buildings that consume resources to survive)
+    let consumptionPerUnit: BuildingInfo["preview"]["consumptionPerUnit"];
+    if (config.consumption && config.consumption.resources.length > 0) {
+      const ticksPerSecond = 1000 / timingConfig.baseTickMs;
+      consumptionPerUnit = config.consumption.resources.map((resource) => ({
+        resourceId: resource.resourceId,
+        perSecond: resource.amountPerTick * ticksPerSecond,
+      }));
+    }
+
     // Build effects descriptions
     let effects: string[] | undefined;
     if (config.effects && config.effects.length > 0) {
@@ -246,6 +259,7 @@ export class BuildingSystem {
     return {
       outputsPerUnit,
       inputsPerUnit,
+      consumptionPerUnit,
       cycleDurationSeconds: isBatchProduction ? intervalSeconds : undefined,
       isBatchProduction,
       effects,
