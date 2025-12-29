@@ -108,6 +108,63 @@ const createTestConfig = (): GameConfig => {
       ],
       resetsOnPrestige: true,
     },
+    {
+      id: "family_worker",
+      name: "Family Member",
+      namePlural: "Family Members",
+      description: "Test worker with building effects",
+      category: "automation",
+      unlockedAtEra: 1,
+      visibleBeforeUnlock: true,
+      icon: "worker",
+      visualTier: 1,
+      baseCost: [{ resourceId: "rice", amount: 200 }],
+      costCurve: "cost_standard",
+      allowBulkPurchase: true,
+      production: {
+        outputs: [{ resourceId: "rice", baseAmount: 2 }],
+        baseIntervalMs: 1000,
+        requiresActive: false,
+        idleEfficiency: 1,
+        amountStackId: "worker_production",
+      },
+      effects: [
+        {
+          stackId: "click_power",
+          value: 0.1, // +10% click power per worker
+          scalesWithVar: "owned",
+          valuePerUnit: 0.1,
+        },
+      ],
+      resetsOnPrestige: true,
+    },
+    {
+      id: "sampan",
+      name: "Sampan",
+      namePlural: "Sampans",
+      description: "Test boat with fixed effect",
+      category: "transport",
+      unlockedAtEra: 1,
+      visibleBeforeUnlock: true,
+      icon: "sampan",
+      visualTier: 1,
+      baseCost: [{ resourceId: "rice", amount: 500 }],
+      costCurve: "cost_standard",
+      allowBulkPurchase: true,
+      production: {
+        outputs: [],
+        baseIntervalMs: 1000,
+        requiresActive: false,
+        idleEfficiency: 1,
+      },
+      effects: [
+        {
+          stackId: "trade_capacity",
+          value: 100, // Each sampan adds 100 cargo capacity (fixed, not scaling)
+        },
+      ],
+      resetsOnPrestige: true,
+    },
   ];
 
   const multiplierStacks: MultiplierStackConfig[] = [
@@ -128,6 +185,27 @@ const createTestConfig = (): GameConfig => {
     {
       id: "drone_production",
       name: "Drone Production",
+      category: "specific_resource",
+      stackType: "multiplicative",
+      baseValue: 1,
+    },
+    {
+      id: "worker_production",
+      name: "Worker Production",
+      category: "specific_resource",
+      stackType: "multiplicative",
+      baseValue: 1,
+    },
+    {
+      id: "click_power",
+      name: "Click Power",
+      category: "click_power",
+      stackType: "multiplicative",
+      baseValue: 1,
+    },
+    {
+      id: "trade_capacity",
+      name: "Trade Capacity",
       category: "specific_resource",
       stackType: "multiplicative",
       baseValue: 1,
@@ -354,6 +432,128 @@ describe("SynergySystem", () => {
 
       // Should still be at base value since system was disposed
       expect(multiplierSystem.getValue("paddy_production")).toBe(1);
+    });
+  });
+
+  describe("building effects", () => {
+    it("should apply scaling building effects when building is purchased", () => {
+      // Initially no bonus
+      expect(multiplierSystem.getValue("click_power")).toBe(1);
+
+      // Purchase 5 workers (scales with owned: 5 * 0.1 = 0.5 bonus)
+      mockStateManager.setBuildingOwned("family_worker", 5);
+      EventBus.emit("building:purchased", {
+        buildingId: "family_worker",
+        count: 5,
+        totalOwned: 5,
+      });
+
+      // Should have applied: 1 + (5 * 0.1) = 1.5
+      expect(multiplierSystem.getValue("click_power")).toBe(1.5);
+    });
+
+    it("should update building effects when more buildings are purchased", () => {
+      // Purchase 3 workers
+      mockStateManager.setBuildingOwned("family_worker", 3);
+      EventBus.emit("building:purchased", {
+        buildingId: "family_worker",
+        count: 3,
+        totalOwned: 3,
+      });
+
+      // 1 + (3 * 0.1) = 1.3
+      expect(multiplierSystem.getValue("click_power")).toBe(1.3);
+
+      // Purchase 2 more workers (total 5)
+      mockStateManager.setBuildingOwned("family_worker", 5);
+      EventBus.emit("building:purchased", {
+        buildingId: "family_worker",
+        count: 2,
+        totalOwned: 5,
+      });
+
+      // 1 + (5 * 0.1) = 1.5
+      expect(multiplierSystem.getValue("click_power")).toBe(1.5);
+    });
+
+    it("should remove building effects when all buildings are removed", () => {
+      // Purchase 3 workers
+      mockStateManager.setBuildingOwned("family_worker", 3);
+      EventBus.emit("building:purchased", {
+        buildingId: "family_worker",
+        count: 3,
+        totalOwned: 3,
+      });
+
+      expect(multiplierSystem.getValue("click_power")).toBe(1.3);
+
+      // All workers removed
+      mockStateManager.setBuildingOwned("family_worker", 0);
+      EventBus.emit("building:removed", {
+        buildingId: "family_worker",
+        count: 3,
+        remaining: 0,
+      });
+
+      // Back to base value
+      expect(multiplierSystem.getValue("click_power")).toBe(1);
+    });
+
+    it("should apply fixed (non-scaling) building effects", () => {
+      // Initially no bonus
+      expect(multiplierSystem.getValue("trade_capacity")).toBe(1);
+
+      // Purchase 3 sampans (fixed value: 100, doesn't scale)
+      mockStateManager.setBuildingOwned("sampan", 3);
+      EventBus.emit("building:purchased", {
+        buildingId: "sampan",
+        count: 3,
+        totalOwned: 3,
+      });
+
+      // Fixed effect: 1 + 100 = 101 (value doesn't scale with count)
+      expect(multiplierSystem.getValue("trade_capacity")).toBe(101);
+    });
+
+    it("should apply existing building effects on initialization", () => {
+      // Set up state before creating system
+      mockStateManager.setBuildingOwned("family_worker", 4);
+
+      // Create new system with pre-existing building state
+      const newSystem = new SynergySystem(
+        config,
+        mockStateManager as unknown as ConstructorParameters<typeof SynergySystem>[1],
+        multiplierSystem
+      );
+
+      // Should have applied the effect: 1 + (4 * 0.1) = 1.4
+      expect(multiplierSystem.getValue("click_power")).toBe(1.4);
+
+      newSystem.dispose();
+    });
+  });
+
+  describe("getBuildingEffectBonuses", () => {
+    it("should return empty array when no buildings owned", () => {
+      const bonuses = synergySystem.getBuildingEffectBonuses();
+      expect(bonuses).toHaveLength(0);
+    });
+
+    it("should return active building effect bonuses", () => {
+      mockStateManager.setBuildingOwned("family_worker", 5);
+      EventBus.emit("building:purchased", {
+        buildingId: "family_worker",
+        count: 5,
+        totalOwned: 5,
+      });
+
+      const bonuses = synergySystem.getBuildingEffectBonuses();
+      expect(bonuses).toHaveLength(1);
+      expect(bonuses[0].buildingId).toBe("family_worker");
+      expect(bonuses[0].stackId).toBe("click_power");
+      expect(bonuses[0].ownedCount).toBe(5);
+      expect(bonuses[0].totalBonus).toBe(0.5);
+      expect(bonuses[0].description).toBe("Family Member provides +50% click power");
     });
   });
 });
