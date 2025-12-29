@@ -1,0 +1,425 @@
+/**
+ * ConfigEditor Styles
+ *
+ * Styles for the in-game config editor modal.
+ */
+
+/* Overlay */
+.config-editor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+/* Modal */
+.config-editor-modal {
+  background: #1a1a2e;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #2a2a4e;
+}
+
+/* Header */
+.config-editor-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: #16162a;
+  border-bottom: 1px solid #2a2a4e;
+  gap: 12px;
+}
+
+.config-editor-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.config-editor-summary {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.summary-badge {
+  background: #3a3a5e;
+  color: #a0a0c0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.config-editor-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.config-editor-close:hover {
+  background: #2a2a4e;
+  color: #fff;
+}
+
+/* Status Message */
+.config-editor-status {
+  padding: 12px 20px;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.config-editor-status--success {
+  background: #1a3a2e;
+  color: #4ade80;
+}
+
+.config-editor-status--error {
+  background: #3a1a1a;
+  color: #f87171;
+}
+
+/* Tabs */
+.config-editor-tabs {
+  display: flex;
+  background: #16162a;
+  border-bottom: 1px solid #2a2a4e;
+  overflow-x: auto;
+}
+
+.config-editor-tabs button {
+  flex: 1;
+  min-width: 100px;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.config-editor-tabs button:hover {
+  background: #1e1e3a;
+  color: #aaa;
+}
+
+.config-editor-tabs button.active {
+  color: #fff;
+  border-bottom-color: #6366f1;
+  background: #1e1e3a;
+}
+
+/* Content */
+.config-editor-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.config-editor-panel {
+  padding: 20px;
+}
+
+.config-editor-panel--split {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  padding: 0;
+}
+
+/* List sidebar */
+.config-editor-list {
+  background: #16162a;
+  border-right: 1px solid #2a2a4e;
+  padding: 16px 0;
+  overflow-y: auto;
+}
+
+.config-editor-list h3 {
+  margin: 0 0 12px 0;
+  padding: 0 16px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #666;
+  letter-spacing: 0.5px;
+}
+
+.config-editor-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.config-editor-list li {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #aaa;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.config-editor-list li:hover {
+  background: #1e1e3a;
+  color: #fff;
+}
+
+.config-editor-list li.selected {
+  background: #2a2a4e;
+  color: #fff;
+}
+
+.config-editor-list li.has-override {
+  color: #6366f1;
+}
+
+.override-indicator {
+  color: #6366f1;
+  font-weight: bold;
+}
+
+/* Form */
+.config-editor-form {
+  padding: 20px;
+}
+
+.config-editor-form h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.125rem;
+  color: #fff;
+}
+
+.config-editor-description {
+  margin: 0 0 20px 0;
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.config-editor-section {
+  margin-bottom: 24px;
+}
+
+.config-editor-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.875rem;
+  color: #a0a0c0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.config-editor-section--danger {
+  border-top: 1px solid #3a1a1a;
+  padding-top: 24px;
+  margin-top: 24px;
+}
+
+.config-editor-section--danger h4 {
+  color: #f87171;
+}
+
+/* Field */
+.config-editor-field {
+  margin-bottom: 16px;
+}
+
+.config-editor-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  color: #ccc;
+}
+
+.config-editor-field input[type="number"],
+.config-editor-field input[type="text"] {
+  width: 100%;
+  max-width: 200px;
+  padding: 10px 12px;
+  background: #0e0e1a;
+  border: 1px solid #3a3a5e;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.config-editor-field input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.config-editor-field--checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.config-editor-field--checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #6366f1;
+}
+
+.config-editor-original {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.config-editor-help {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #888;
+  font-style: italic;
+}
+
+/* Textarea */
+.config-editor-textarea {
+  width: 100%;
+  padding: 12px;
+  background: #0e0e1a;
+  border: 1px solid #3a3a5e;
+  border-radius: 6px;
+  color: #fff;
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+.config-editor-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+/* Clear button */
+.config-editor-clear-btn {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: #2a2a4e;
+  border: 1px solid #3a3a5e;
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.config-editor-clear-btn:hover {
+  background: #3a3a5e;
+  color: #fff;
+}
+
+/* Footer */
+.config-editor-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #16162a;
+  border-top: 1px solid #2a2a4e;
+  justify-content: flex-end;
+}
+
+/* Buttons */
+.config-editor-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #3a3a5e;
+  background: #2a2a4e;
+  color: #fff;
+}
+
+.config-editor-btn:hover {
+  background: #3a3a5e;
+}
+
+.config-editor-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.config-editor-btn--primary {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+
+.config-editor-btn--primary:hover {
+  background: #5558e0;
+}
+
+.config-editor-btn--secondary {
+  background: transparent;
+  border-color: #3a3a5e;
+  color: #aaa;
+}
+
+.config-editor-btn--secondary:hover {
+  background: #2a2a4e;
+  color: #fff;
+}
+
+.config-editor-btn--danger {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.config-editor-btn--danger:hover {
+  background: #b91c1c;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .config-editor-panel--split {
+    grid-template-columns: 1fr;
+  }
+
+  .config-editor-list {
+    border-right: none;
+    border-bottom: 1px solid #2a2a4e;
+    max-height: 200px;
+  }
+
+  .config-editor-footer {
+    flex-wrap: wrap;
+  }
+
+  .config-editor-footer button {
+    flex: 1;
+    min-width: 120px;
+  }
+}

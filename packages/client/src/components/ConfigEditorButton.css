@@ -1,0 +1,41 @@
+/**
+ * ConfigEditorButton Styles
+ */
+
+.config-editor-button {
+  position: fixed;
+  top: 12px;
+  right: 140px;
+  z-index: 100;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 30, 50, 0.9);
+  border: 1px solid rgba(100, 100, 140, 0.3);
+  border-radius: 8px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.config-editor-button:hover {
+  background: rgba(50, 50, 80, 0.95);
+  border-color: rgba(100, 102, 241, 0.5);
+  color: #6366f1;
+  transform: scale(1.05);
+}
+
+.config-editor-button:active {
+  transform: scale(0.98);
+}
+
+.config-editor-button svg {
+  transition: transform 0.3s ease;
+}
+
+.config-editor-button:hover svg {
+  transform: rotate(45deg);
+}
