@@ -35,6 +35,30 @@ export interface BuildingOverride {
   productionAmount: number;
   productionIntervalMs: number;
 
+  // Consumption overrides (for buildings that consume resources like buffalo)
+  consumption: {
+    // keyed by resourceId
+    [resourceId: string]: {
+      amountPerTick?: number;
+      healthLossPerMissing?: number;
+    };
+  };
+  consumptionMaxHealth: number;
+
+  // Effects overrides (multiplier effects the building provides)
+  effects: {
+    // keyed by stackId
+    [stackId: string]: {
+      value: number;
+      valuePerUnit?: number;
+    };
+  };
+
+  // Special effects overrides
+  specialEffects: {
+    synergyBonus?: number; // For synergy effects
+  };
+
   // Unlock requirement overrides
   unlockDisabled: boolean; // If true, building is always unlocked
 
@@ -47,7 +71,12 @@ export interface UpgradeOverride {
   costAmount: number; // For single-resource upgrades
   costMultiple: Record<string, number>; // resourceId -> amount
 
-  // Effect overrides
+  // Effect overrides - keyed by stackId
+  effects: {
+    [stackId: string]: number;
+  };
+
+  // Legacy single effect (for backwards compatibility)
   effectValue: number;
 
   // Unlock requirement overrides
@@ -180,6 +209,48 @@ export function applyConfigOverrides(
       }
     }
 
+    // Apply consumption overrides
+    if (override.consumption && building.consumption?.resources) {
+      for (const consumptionRes of building.consumption.resources) {
+        const consumptionOverride = override.consumption[consumptionRes.resourceId];
+        if (consumptionOverride) {
+          if (consumptionOverride.amountPerTick !== undefined) {
+            consumptionRes.amountPerTick = consumptionOverride.amountPerTick;
+          }
+          if (consumptionOverride.healthLossPerMissing !== undefined) {
+            consumptionRes.healthLossPerMissing = consumptionOverride.healthLossPerMissing;
+          }
+        }
+      }
+    }
+    if (override.consumptionMaxHealth !== undefined && building.consumption) {
+      building.consumption.maxHealth = override.consumptionMaxHealth;
+    }
+
+    // Apply effects overrides
+    if (override.effects && building.effects) {
+      for (const effect of building.effects) {
+        const effectOverride = override.effects[effect.stackId];
+        if (effectOverride) {
+          if (effectOverride.value !== undefined) {
+            effect.value = effectOverride.value;
+          }
+          if (effectOverride.valuePerUnit !== undefined) {
+            effect.valuePerUnit = effectOverride.valuePerUnit;
+          }
+        }
+      }
+    }
+
+    // Apply special effects overrides (synergy bonus, etc.)
+    if (override.specialEffects && building.specialEffects) {
+      for (const specialEffect of building.specialEffects) {
+        if (specialEffect.type === 'synergy' && override.specialEffects.synergyBonus !== undefined) {
+          specialEffect.params.synergyBonus = override.specialEffects.synergyBonus;
+        }
+      }
+    }
+
     // Apply unlock override
     if (override.unlockDisabled) {
       building.unlockRequirements = [];
@@ -208,7 +279,16 @@ export function applyConfigOverrides(
       }
     }
 
-    // Apply effect value override
+    // Apply effect overrides (new format - keyed by stackId)
+    if (override.effects && upgrade.effects) {
+      for (const effect of upgrade.effects) {
+        if (override.effects[effect.stackId] !== undefined) {
+          effect.value = override.effects[effect.stackId];
+        }
+      }
+    }
+
+    // Apply legacy single effect value override (backwards compatibility)
     if (override.effectValue !== undefined && upgrade.effects?.[0]) {
       upgrade.effects[0].value = override.effectValue;
     }

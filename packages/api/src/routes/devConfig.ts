@@ -21,12 +21,32 @@ interface BuildingOverride {
   productionIntervalMs?: number;
   unlockDisabled?: boolean;
   maxOwned?: number | null;
+  // Consumption overrides
+  consumption?: {
+    [resourceId: string]: {
+      amountPerTick?: number;
+      healthLossPerMissing?: number;
+    };
+  };
+  consumptionMaxHealth?: number;
+  // Effects overrides
+  effects?: {
+    [stackId: string]: {
+      value?: number;
+      valuePerUnit?: number;
+    };
+  };
+  // Special effects
+  specialEffects?: {
+    synergyBonus?: number;
+  };
 }
 
 interface UpgradeOverride {
   costAmount?: number;
   costMultiple?: Record<string, number>;
   effectValue?: number;
+  effects?: Record<string, number>;
   unlockDisabled?: boolean;
 }
 
@@ -130,6 +150,134 @@ devConfigRouter.get('/status', (_req: Request, res: Response) => {
 });
 
 /**
+ * Find a building block in the content by ID
+ * Returns the start and end indices of the building object
+ */
+function findBuildingBlock(content: string, buildingId: string): { start: number; end: number } | null {
+  // Find the id line
+  const idPattern = new RegExp(`id:\\s*["']${buildingId}["']`);
+  const idMatch = content.match(idPattern);
+  if (!idMatch || idMatch.index === undefined) return null;
+
+  // Find the opening brace before this id
+  let braceCount = 0;
+  let start = idMatch.index;
+  for (let i = idMatch.index; i >= 0; i--) {
+    if (content[i] === '{') {
+      braceCount++;
+      if (braceCount === 1) {
+        start = i;
+        break;
+      }
+    } else if (content[i] === '}') {
+      braceCount--;
+    }
+  }
+
+  // Find the closing brace
+  braceCount = 0;
+  let end = start;
+  for (let i = start; i < content.length; i++) {
+    if (content[i] === '{') braceCount++;
+    if (content[i] === '}') {
+      braceCount--;
+      if (braceCount === 0) {
+        end = i + 1;
+        break;
+      }
+    }
+  }
+
+  return { start, end };
+}
+
+/**
+ * Replace a numeric value in a block, handling nested structures
+ */
+function replaceValueInBlock(
+  block: string,
+  path: string[], // e.g., ['consumption', 'resources', '0', 'amountPerTick']
+  newValue: number
+): string {
+  // Build a regex pattern for the path
+  // This is a simplified approach - we search for the specific key and update its value
+  const key = path[path.length - 1];
+
+  // For deeply nested paths, we need to find the right context
+  if (path.length === 1) {
+    // Simple top-level key
+    const regex = new RegExp(`(${key}:\\s*)(\\d+(?:\\.\\d+)?)`);
+    return block.replace(regex, `$1${newValue}`);
+  }
+
+  // For nested paths like ['consumption', 'resources', '0', 'amountPerTick']
+  // or ['specialEffects', '0', 'params', 'synergyBonus']
+  // We need to find the parent context first
+
+  // Special handling for consumption.resources[].amountPerTick
+  if (path[0] === 'consumption' && path[1] === 'resources') {
+    const resourceIndex = parseInt(path[2], 10);
+    const field = path[3];
+
+    // Find the consumption block
+    const consumptionMatch = block.match(/consumption:\s*\{/);
+    if (!consumptionMatch) return block;
+
+    // Find the resources array
+    const resourcesMatch = block.slice(consumptionMatch.index).match(/resources:\s*\[/);
+    if (!resourcesMatch) return block;
+
+    // Now find the Nth resource object and update the field
+    let resourceCount = 0;
+    let searchStart = consumptionMatch.index! + resourcesMatch.index! + resourcesMatch[0].length;
+    let braceDepth = 0;
+    let inResource = false;
+    let resourceStart = searchStart;
+
+    for (let i = searchStart; i < block.length && resourceCount <= resourceIndex; i++) {
+      if (block[i] === '{') {
+        if (!inResource) {
+          inResource = true;
+          resourceStart = i;
+        }
+        braceDepth++;
+      } else if (block[i] === '}') {
+        braceDepth--;
+        if (braceDepth === 0 && inResource) {
+          if (resourceCount === resourceIndex) {
+            // Found our resource block, update the field
+            const resourceBlock = block.slice(resourceStart, i + 1);
+            const fieldRegex = new RegExp(`(${field}:\\s*)(\\d+(?:\\.\\d+)?)`);
+            const updatedResource = resourceBlock.replace(fieldRegex, `$1${newValue}`);
+            return block.slice(0, resourceStart) + updatedResource + block.slice(i + 1);
+          }
+          resourceCount++;
+          inResource = false;
+        }
+      } else if (block[i] === ']' && braceDepth === 0) {
+        break; // End of resources array
+      }
+    }
+  }
+
+  // Special handling for specialEffects[].params.synergyBonus
+  if (path[0] === 'specialEffects' && path[2] === 'params') {
+    const field = path[3];
+    // Find synergyBonus in any specialEffect with type "synergy"
+    const regex = new RegExp(`(synergyBonus:\\s*)(\\d+(?:\\.\\d+)?)`);
+    return block.replace(regex, `$1${newValue}`);
+  }
+
+  // For consumption.maxHealth
+  if (path[0] === 'consumption' && path[1] === 'maxHealth') {
+    const regex = new RegExp(`(maxHealth:\\s*)(\\d+)`);
+    return block.replace(regex, `$1${newValue}`);
+  }
+
+  return block;
+}
+
+/**
  * Write building overrides to buildings.config.ts
  */
 async function writeBuildingOverrides(
@@ -145,54 +293,82 @@ async function writeBuildingOverrides(
   let changesApplied = 0;
 
   for (const [buildingId, override] of Object.entries(overrides)) {
-    // Find the building definition block
-    const buildingRegex = new RegExp(
-      `(\\{[^}]*id:\\s*["']${buildingId}["'][^}]*\\})`,
-      'gs'
-    );
+    const blockPos = findBuildingBlock(content, buildingId);
+    if (!blockPos) continue;
 
-    content = content.replace(buildingRegex, (match) => {
-      let updated = match;
+    let block = content.slice(blockPos.start, blockPos.end);
+    const originalBlock = block;
 
-      // Update baseCost amount for single-resource buildings
-      if (override.baseCostAmount !== undefined) {
-        updated = updated.replace(
-          /(baseCost:\s*\[\s*\{[^}]*amount:\s*)(\d+(?:\.\d+)?)/,
-          `$1${override.baseCostAmount}`
-        );
-        changesApplied++;
+    // Update baseCost amount
+    if (override.baseCostAmount !== undefined) {
+      const regex = /(baseCost:\s*\[\s*\{[^}]*amount:\s*)(\d+(?:\.\d+)?)/;
+      block = block.replace(regex, `$1${override.baseCostAmount}`);
+    }
+
+    // Update baseCost for multiple resources
+    if (override.baseCostMultiple) {
+      for (const [resourceId, amount] of Object.entries(override.baseCostMultiple)) {
+        const regex = new RegExp(`(resourceId:\\s*["']${resourceId}["'][^}]*amount:\\s*)(\\d+(?:\\.\\d+)?)`);
+        block = block.replace(regex, `$1${amount}`);
       }
+    }
 
-      // Update production outputs baseAmount
-      if (override.productionAmount !== undefined) {
-        // This is trickier because production comes from shared
-        // We'll add a comment noting the override for now
-        // The actual override happens via the runtime system
+    // Update maxOwned
+    if (override.maxOwned !== undefined) {
+      if (override.maxOwned === null) {
+        block = block.replace(/\s*maxOwned:\s*\d+,?\s*/g, '');
+      } else {
+        const regex = /(maxOwned:\s*)(\d+)/;
+        block = block.replace(regex, `$1${override.maxOwned}`);
       }
+    }
 
-      // Update maxOwned
-      if (override.maxOwned !== undefined) {
-        if (override.maxOwned === null) {
-          // Remove maxOwned line
-          updated = updated.replace(/\s*maxOwned:\s*\d+,?\s*/g, '');
-        } else if (updated.includes('maxOwned:')) {
-          updated = updated.replace(
-            /(maxOwned:\s*)(\d+)/,
-            `$1${override.maxOwned}`
+    // Update consumption
+    if (override.consumption) {
+      for (const [resourceId, consumptionData] of Object.entries(override.consumption)) {
+        // Find the resource in consumption.resources array by resourceId
+        if (consumptionData.amountPerTick !== undefined) {
+          // Find the consumption resource block for this resourceId
+          const resourcePattern = new RegExp(
+            `(resourceId:\\s*["']${resourceId}["'][^}]*amountPerTick:\\s*)(\\d+(?:\\.\\d+)?)`,
+            's'
           );
+          block = block.replace(resourcePattern, `$1${consumptionData.amountPerTick}`);
         }
-        changesApplied++;
+        if (consumptionData.healthLossPerMissing !== undefined) {
+          const resourcePattern = new RegExp(
+            `(resourceId:\\s*["']${resourceId}["'][^}]*healthLossPerMissing:\\s*)(\\d+(?:\\.\\d+)?)`,
+            's'
+          );
+          block = block.replace(resourcePattern, `$1${consumptionData.healthLossPerMissing}`);
+        }
       }
+    }
 
-      return updated;
-    });
+    // Update consumption maxHealth
+    if (override.consumptionMaxHealth !== undefined) {
+      const regex = /(consumption:\s*\{[^}]*maxHealth:\s*)(\d+)/s;
+      block = block.replace(regex, `$1${override.consumptionMaxHealth}`);
+    }
+
+    // Update specialEffects synergyBonus
+    if (override.specialEffects?.synergyBonus !== undefined) {
+      const regex = /(synergyBonus:\s*)([\d.]+)/;
+      block = block.replace(regex, `$1${override.specialEffects.synergyBonus}`);
+    }
+
+    // Count changes
+    if (block !== originalBlock) {
+      changesApplied++;
+      content = content.slice(0, blockPos.start) + block + content.slice(blockPos.end);
+    }
   }
 
   fs.writeFileSync(filePath, content, 'utf-8');
 
   return {
     success: true,
-    message: `Applied ${changesApplied} changes to buildings.config.ts`,
+    message: `Applied ${changesApplied} building changes to buildings.config.ts`,
   };
 }
 
