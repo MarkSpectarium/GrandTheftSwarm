@@ -77,6 +77,24 @@ export const gameConfig: GameConfig = {
       stackType: "multiplicative",
       baseValue: 1,
     },
+    // Resource-specific production stacks (for ResourceSystem.addResource)
+    {
+      id: "rice_production",
+      name: "Rice Production",
+      category: "specific_resource",
+      targetResource: "rice",
+      stackType: "multiplicative",
+      baseValue: 1,
+    },
+    {
+      id: "dong_production",
+      name: "Dong Production",
+      category: "specific_resource",
+      targetResource: "dong",
+      stackType: "multiplicative",
+      baseValue: 1,
+    },
+    // Building-specific production stacks
     {
       id: "paddy_production",
       name: "Paddy Field Production",
