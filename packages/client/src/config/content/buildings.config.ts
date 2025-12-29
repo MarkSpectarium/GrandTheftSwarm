@@ -105,6 +105,17 @@ export const buildings: BuildingConfig[] = [
       },
     ],
 
+    specialEffects: [
+      {
+        type: "synergy",
+        params: {
+          synergyBuilding: "paddy_field",
+          synergyBonus: 0.03, // +3% paddy production per worker
+        },
+        description: "Each worker increases paddy field production by 3%",
+      },
+    ],
+
     maxOwned: 10, // Family size limit in Era 1
     resetsOnPrestige: true,
   },
@@ -270,6 +281,17 @@ export const buildings: BuildingConfig[] = [
       ...getSharedProduction("irrigation_canal"),
       amountStackId: "water_production",
     },
+
+    specialEffects: [
+      {
+        type: "synergy",
+        params: {
+          synergyBuilding: "paddy_field",
+          synergyBonus: 0.05, // +5% paddy production per canal
+        },
+        description: "Each canal increases paddy field production by 5%",
+      },
+    ],
 
     resetsOnPrestige: true,
   },
@@ -481,6 +503,17 @@ export const buildings: BuildingConfig[] = [
         value: 0.01, // +1% all production per drone
         scalesWithVar: "owned",
         valuePerUnit: 0.01,
+      },
+    ],
+
+    specialEffects: [
+      {
+        type: "synergy",
+        params: {
+          synergyBuilding: "paddy_field",
+          synergyBonus: 0.02, // +2% paddy production per drone
+        },
+        description: "Each drone increases paddy field production by 2%",
       },
     ],
 
