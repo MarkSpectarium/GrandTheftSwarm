@@ -117,6 +117,14 @@ export const gameConfig: GameConfig = {
       stackType: "multiplicative",
       baseValue: 1,
     },
+    {
+      id: "water_production",
+      name: "Water Production",
+      category: "specific_resource",
+      targetResource: "water",
+      stackType: "multiplicative",
+      baseValue: 1,
+    },
 
     // Speed stacks
     {
