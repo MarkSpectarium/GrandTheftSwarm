@@ -18,6 +18,7 @@ import { ResourceSystem } from "./systems/ResourceSystem";
 import { BuildingSystem } from "./systems/BuildingSystem";
 import { ConsumptionSystem } from "./systems/ConsumptionSystem";
 import { UpgradeSystem } from "./systems/UpgradeSystem";
+import { SynergySystem } from "./systems/SynergySystem";
 import { SaveSystem } from "./systems/SaveSystem";
 
 import { gameConfig, type GameConfig } from "./config";
@@ -42,6 +43,7 @@ export class Game {
   public readonly buildingSystem: BuildingSystem;
   public readonly consumptionSystem: ConsumptionSystem;
   public readonly upgradeSystem: UpgradeSystem;
+  public readonly synergySystem: SynergySystem;
   private saveSystem: SaveSystem;
 
   private isInitialized: boolean = false;
@@ -98,6 +100,12 @@ export class Game {
       this.config,
       this.stateManager,
       this.resourceSystem,
+      this.multiplierSystem
+    );
+
+    this.synergySystem = new SynergySystem(
+      this.config,
+      this.stateManager,
       this.multiplierSystem
     );
 
@@ -203,6 +211,7 @@ export class Game {
     this.buildingSystem.dispose();
     this.consumptionSystem.dispose();
     this.upgradeSystem.dispose();
+    this.synergySystem.dispose();
     this.saveSystem.dispose();
 
     // Dispose own subscriptions
