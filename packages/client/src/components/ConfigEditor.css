@@ -245,6 +245,21 @@
   color: #f87171;
 }
 
+/* Subsection (for nested groups like consumption resources) */
+.config-editor-subsection {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.config-editor-subsection h5 {
+  margin: 0 0 12px 0;
+  font-size: 0.8rem;
+  color: #8888aa;
+  text-transform: capitalize;
+}
+
 /* Field */
 .config-editor-field {
   margin-bottom: 16px;

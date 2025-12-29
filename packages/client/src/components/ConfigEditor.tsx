@@ -447,6 +447,112 @@ export function ConfigEditor({ isOpen, onClose, onApply }: ConfigEditorProps) {
                     </div>
                   )}
 
+                  {/* Consumption section (for buildings like buffalo that consume resources) */}
+                  {selectedBuilding.consumption?.resources && selectedBuilding.consumption.resources.length > 0 && (
+                    <div className="config-editor-section">
+                      <h4>Resource Consumption</h4>
+                      {selectedBuilding.consumption.resources.map(consumptionRes => (
+                        <div key={consumptionRes.resourceId} className="config-editor-subsection">
+                          <h5>{consumptionRes.resourceId}</h5>
+                          <div className="config-editor-field">
+                            <label>Amount per tick</label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.1}
+                              value={
+                                buildingOverride.consumption?.[consumptionRes.resourceId]?.amountPerTick ??
+                                consumptionRes.amountPerTick
+                              }
+                              onChange={e => updateBuildingOverride(selectedBuildingId, {
+                                consumption: {
+                                  ...buildingOverride.consumption,
+                                  [consumptionRes.resourceId]: {
+                                    ...buildingOverride.consumption?.[consumptionRes.resourceId],
+                                    amountPerTick: parseFloat(e.target.value),
+                                  },
+                                },
+                              })}
+                            />
+                            <span className="config-editor-original">
+                              Original: {consumptionRes.amountPerTick}
+                            </span>
+                          </div>
+                          <div className="config-editor-field">
+                            <label>Health loss per missing</label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.1}
+                              value={
+                                buildingOverride.consumption?.[consumptionRes.resourceId]?.healthLossPerMissing ??
+                                consumptionRes.healthLossPerMissing
+                              }
+                              onChange={e => updateBuildingOverride(selectedBuildingId, {
+                                consumption: {
+                                  ...buildingOverride.consumption,
+                                  [consumptionRes.resourceId]: {
+                                    ...buildingOverride.consumption?.[consumptionRes.resourceId],
+                                    healthLossPerMissing: parseFloat(e.target.value),
+                                  },
+                                },
+                              })}
+                            />
+                            <span className="config-editor-original">
+                              Original: {consumptionRes.healthLossPerMissing}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="config-editor-field">
+                        <label>Max Health</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={buildingOverride.consumptionMaxHealth ?? selectedBuilding.consumption.maxHealth}
+                          onChange={e => updateBuildingOverride(selectedBuildingId, {
+                            consumptionMaxHealth: parseInt(e.target.value),
+                          })}
+                        />
+                        <span className="config-editor-original">
+                          Original: {selectedBuilding.consumption.maxHealth}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Special effects section (synergy bonuses, etc.) */}
+                  {selectedBuilding.specialEffects && selectedBuilding.specialEffects.length > 0 && (
+                    <div className="config-editor-section">
+                      <h4>Special Effects</h4>
+                      {selectedBuilding.specialEffects.map((effect, index) => (
+                        effect.type === 'synergy' && effect.params.synergyBonus !== undefined && (
+                          <div key={index} className="config-editor-field">
+                            <label>Synergy bonus ({effect.params.synergyBuilding})</label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              value={buildingOverride.specialEffects?.synergyBonus ?? effect.params.synergyBonus}
+                              onChange={e => updateBuildingOverride(selectedBuildingId, {
+                                specialEffects: {
+                                  ...buildingOverride.specialEffects,
+                                  synergyBonus: parseFloat(e.target.value),
+                                },
+                              })}
+                            />
+                            <span className="config-editor-original">
+                              Original: {effect.params.synergyBonus} ({(effect.params.synergyBonus * 100).toFixed(0)}%)
+                            </span>
+                            <span className="config-editor-help">
+                              {effect.description}
+                            </span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+
                   {overrides.buildings[selectedBuildingId] && (
                     <button
                       className="config-editor-clear-btn"
