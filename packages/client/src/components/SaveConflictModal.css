@@ -1,0 +1,215 @@
+/**
+ * SaveConflictModal Styles
+ *
+ * Steam-style save conflict resolution modal.
+ */
+
+/* Overlay */
+.save-conflict-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+/* Modal */
+.save-conflict-modal {
+  background: #1a1a2e;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 700px;
+  border: 1px solid #2a2a4e;
+  overflow: hidden;
+}
+
+/* Header */
+.save-conflict-header {
+  padding: 24px;
+  text-align: center;
+  background: #16162a;
+  border-bottom: 1px solid #2a2a4e;
+}
+
+.save-conflict-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  color: #fff;
+}
+
+.save-conflict-header p {
+  margin: 0;
+  color: #888;
+  font-size: 0.95rem;
+}
+
+/* Options Container */
+.save-conflict-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 24px;
+}
+
+/* Individual Option */
+.save-conflict-option {
+  background: #0e0e1a;
+  border: 2px solid #2a2a4e;
+  border-radius: 10px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.save-conflict-option:hover {
+  border-color: #4a4a6e;
+  background: #12121f;
+}
+
+.save-conflict-option--newer {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.05);
+}
+
+.save-conflict-option--newer:hover {
+  border-color: #22c55e;
+  background: rgba(74, 222, 128, 0.1);
+}
+
+/* Option Header */
+.save-option-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.save-option-icon {
+  font-size: 1.5rem;
+}
+
+.save-option-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  flex: 1;
+}
+
+.save-option-badge {
+  background: #22c55e;
+  color: #000;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Stats Grid */
+.save-option-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.save-stat {
+  background: #16162a;
+  padding: 10px 12px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.save-stat-label {
+  font-size: 0.7rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.save-stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Time Info */
+.save-option-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2a4e;
+}
+
+.save-time-ago {
+  font-size: 0.9rem;
+  color: #a0a0c0;
+}
+
+.save-time-date {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+/* Action Button Area */
+.save-option-action {
+  background: #2a2a4e;
+  color: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.save-conflict-option:hover .save-option-action {
+  background: #3a3a5e;
+}
+
+.save-conflict-option--newer .save-option-action {
+  background: #22c55e;
+  color: #000;
+}
+
+.save-conflict-option--newer:hover .save-option-action {
+  background: #16a34a;
+}
+
+/* Footer */
+.save-conflict-footer {
+  padding: 16px 24px;
+  background: #16162a;
+  border-top: 1px solid #2a2a4e;
+  text-align: center;
+}
+
+.save-conflict-footer p {
+  margin: 0;
+  color: #f87171;
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .save-conflict-options {
+    grid-template-columns: 1fr;
+  }
+
+  .save-conflict-modal {
+    max-width: 100%;
+  }
+}

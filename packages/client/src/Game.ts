@@ -261,6 +261,46 @@ export class Game {
   }
 
   /**
+   * Sync local save to cloud (requires auth)
+   */
+  async syncToCloud(): Promise<boolean> {
+    return this.saveSystem.syncToCloud();
+  }
+
+  /**
+   * Load save from cloud (requires auth)
+   */
+  async loadFromCloud(): Promise<boolean> {
+    const success = await this.saveSystem.loadFromCloud();
+    if (success) {
+      this.buildingSystem.checkUnlocks();
+      this.upgradeSystem.checkUnlocks();
+      this.buildingSystem.recalculateAllProduction();
+    }
+    return success;
+  }
+
+  /**
+   * Force upload local save to cloud, overwriting cloud save
+   */
+  async forceUploadToCloud(): Promise<boolean> {
+    return this.saveSystem.forceUploadToCloud();
+  }
+
+  /**
+   * Force load cloud save, overwriting local save
+   */
+  forceLoadFromCloud(cloudSave: import('shared').CloudSaveData): boolean {
+    const success = this.saveSystem.forceLoadFromCloud(cloudSave);
+    if (success) {
+      this.buildingSystem.checkUnlocks();
+      this.upgradeSystem.checkUnlocks();
+      this.buildingSystem.recalculateAllProduction();
+    }
+    return success;
+  }
+
+  /**
    * Purchase a building (exposed for UI)
    */
   purchaseBuilding(buildingId: string, count: number = 1): boolean {

@@ -531,7 +531,7 @@ export class SaveSystem {
   /**
    * Force upload local save to cloud (overwriting cloud save)
    */
-  private async forceUploadToCloud(): Promise<boolean> {
+  async forceUploadToCloud(): Promise<boolean> {
     if (!this.isAuthenticated()) {
       return false;
     }
@@ -562,7 +562,7 @@ export class SaveSystem {
   /**
    * Force load from cloud save (overwriting local save)
    */
-  private forceLoadFromCloud(cloudSave: CloudSaveData): boolean {
+  forceLoadFromCloud(cloudSave: CloudSaveData): boolean {
     try {
       this.stateManager.loadState(cloudSave.data);
 
