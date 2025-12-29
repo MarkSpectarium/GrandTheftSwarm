@@ -371,6 +371,20 @@ export { default as resourcesConfig } from "./content/resources.config";
 export { default as buildingsConfig } from "./content/buildings.config";
 export { default as upgradesConfig } from "./content/upgrades.config";
 
+// Export building balance config
+export {
+  buildingHealthConfig,
+  buildingCalculationConfig,
+} from "./balance/buildings.balance.config";
+
+// Export UI configs
+export {
+  visualizationGridConfig,
+  displayCapsConfig,
+  densityConfig,
+  animationTimingConfig,
+} from "./ui/visualization.config";
+
 // Export dev mode presets for accelerated testing
 export {
   devModePresets,

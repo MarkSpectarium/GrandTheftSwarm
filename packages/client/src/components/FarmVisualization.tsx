@@ -12,6 +12,12 @@
 
 import { useMemo, useRef, useEffect, useState, memo } from 'react';
 import { useGame } from '../contexts/GameContext';
+import {
+  visualizationGridConfig,
+  displayCapsConfig,
+  densityConfig,
+  animationTimingConfig,
+} from '../config/ui/visualization.config';
 import './FarmVisualization.css';
 
 // =============================================================================
@@ -51,23 +57,11 @@ interface GameWithMultipliers {
 }
 
 // =============================================================================
-// Constants
+// Constants (from config)
 // =============================================================================
 
-const GRID_SIZE = 12;
-const UPDATE_DEBOUNCE_MS = 250;
-
-// Display caps to prevent visual overload
-const DISPLAY_CAPS = {
-  paddy: 12,
-  worker: 6,
-  buffalo: 4,
-  well: 2,
-  carrier: 3,
-  canal: 2,
-  mill: 2,
-  sampan: 3,
-} as const;
+const { gridSize: GRID_SIZE, updateDebounceMs: UPDATE_DEBOUNCE_MS } = visualizationGridConfig;
+const DISPLAY_CAPS = displayCapsConfig;
 
 // =============================================================================
 // Helpers
@@ -163,13 +157,15 @@ const Boat = memo(function Boat({ index }: { index: number }) {
 
 /** Dingy trading boat with rice/dong animation */
 const Dingy = memo(function Dingy({ speedMultiplier }: { speedMultiplier: number }) {
+  const { dingyBaseDurationSeconds, dingyMinDurationSeconds } = animationTimingConfig;
+  const duration = Math.max(dingyMinDurationSeconds, dingyBaseDurationSeconds / speedMultiplier);
+
   return (
     <div
       className="dingy-container"
       style={{
         // Animation duration scales with speed multiplier (faster = shorter)
-        // Base is 10s, minimum 2s to keep animation visible
-        '--dingy-duration': `${Math.max(2, 10 / speedMultiplier)}s`,
+        '--dingy-duration': `${duration}s`,
       } as React.CSSProperties}
     >
       <span className="dingy">🚣</span>
@@ -347,7 +343,7 @@ function computeFarmState(
 
   // Calculate visual density (how "full" the farm looks)
   const totalBuildings = paddyCount + wellCount + canalCount + millCount;
-  const density = Math.min(totalBuildings / 20, 1);
+  const density = Math.min(totalBuildings / densityConfig.maxBuildingsForDensity, 1);
 
   // Calculate farm "tier" for visual complexity
   let tier = 1;
