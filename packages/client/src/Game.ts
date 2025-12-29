@@ -21,10 +21,16 @@ import { UpgradeSystem } from "./systems/UpgradeSystem";
 import { SaveSystem } from "./systems/SaveSystem";
 
 import { gameConfig, type GameConfig } from "./config";
+import {
+  loadConfigOverrides,
+  applyConfigOverrides,
+} from "./systems/ConfigOverrideSystem";
 
 export interface GameOptions {
   config?: GameConfig;
   autoStart?: boolean;
+  /** If true, skip loading config overrides from localStorage */
+  skipOverrides?: boolean;
 }
 
 export class Game {
@@ -48,7 +54,17 @@ export class Game {
   private subscriptions = new SubscriptionManager();
 
   constructor(options: GameOptions = {}) {
-    this.config = options.config ?? gameConfig;
+    // Load base config
+    let config = options.config ?? gameConfig;
+
+    // Apply config overrides from localStorage (unless skipped)
+    if (!options.skipOverrides) {
+      const overrides = loadConfigOverrides();
+      config = applyConfigOverrides(config, overrides);
+      console.log("Game: Applied config overrides from localStorage");
+    }
+
+    this.config = config;
 
     // Initialize core systems
     initializeCurveEvaluator(this.config.curves);
